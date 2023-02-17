@@ -54,7 +54,7 @@
 
 -(void)playButtonPressed:(UIButton*)button{
     if([[button currentTitle] compare:@"play"] == NSOrderedSame){
-//        [_source startCaptureVideo];
+        [_source startCaptureVideo];
     }else {
         
     }
