@@ -41,12 +41,12 @@
 -(void)initVideoSession{
     dispatch_async(_sessionQueue, ^{
         /// 串型队列
-        self.ca,ecameraProcessingQueue = dispatch_queue_create("videoDataOutputQueue", DISPATCH_QUEUE_SERIAL);
+        self->_cameraProcessingQueue = dispatch_queue_create("videoDataOutputQueue", DISPATCH_QUEUE_SERIAL);
         
         /// 创建sessiom
         self.session  = [[AVCaptureSession alloc] init];
         [self.session beginConfiguration];
-        self.sessionPreset = AVCaptureSessionPreset1280x720;
+        self->_session.sessionPreset = AVCaptureSessionPreset1280x720;
         
         NSArray *devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
         
