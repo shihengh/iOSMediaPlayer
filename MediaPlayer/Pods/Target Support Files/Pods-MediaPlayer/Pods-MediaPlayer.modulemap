@@ -1,0 +1,6 @@
+framework module Pods_MediaPlayer {
+  umbrella header "Pods-MediaPlayer-umbrella.h"
+
+  export *
+  module * { export * }
+}

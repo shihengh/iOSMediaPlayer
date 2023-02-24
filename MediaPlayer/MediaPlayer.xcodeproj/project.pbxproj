@@ -21,6 +21,9 @@
 		28F1DB03297930B9000A5A98 /* MediaPlayerUITestsLaunchTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 28F1DB02297930B9000A5A98 /* MediaPlayerUITestsLaunchTests.m */; };
 		28F1DB1229793454000A5A98 /* BaseViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 28F1DB1129793454000A5A98 /* BaseViewController.m */; };
 		28F1DB1529793478000A5A98 /* VideoRenderController.m in Sources */ = {isa = PBXBuildFile; fileRef = 28F1DB1429793478000A5A98 /* VideoRenderController.m */; };
+		3C41B4DE91A4F82CCB186DD9 /* Pods_MediaPlayerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DAEBE8327C1613299C59BD8F /* Pods_MediaPlayerTests.framework */; };
+		63EA2D640AC9FDB40964C9B2 /* Pods_MediaPlayer_MediaPlayerUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 57A042D39ABEA644A9580924 /* Pods_MediaPlayer_MediaPlayerUITests.framework */; };
+		C9DC37AD24AF710A3020149F /* Pods_MediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D80ADD567D184878302BD95 /* Pods_MediaPlayer.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,6 +44,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		05A503082A165FEE75488E17 /* Pods-MediaPlayerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MediaPlayerTests.debug.xcconfig"; path = "Target Support Files/Pods-MediaPlayerTests/Pods-MediaPlayerTests.debug.xcconfig"; sourceTree = "<group>"; };
+		2852549A29A76F7D008C8EAB /* GLDefines.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GLDefines.h; sourceTree = "<group>"; };
 		289F3122297A3FEF0019E83C /* CameraSource.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CameraSource.h; sourceTree = "<group>"; };
 		289F3123297A3FEF0019E83C /* CameraSource.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CameraSource.m; sourceTree = "<group>"; };
 		28B84FBF2984F09200817533 /* MultiCameraSource.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MultiCameraSource.h; sourceTree = "<group>"; };
@@ -66,6 +71,14 @@
 		28F1DB1129793454000A5A98 /* BaseViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BaseViewController.m; sourceTree = "<group>"; };
 		28F1DB1329793478000A5A98 /* VideoRenderController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VideoRenderController.h; sourceTree = "<group>"; };
 		28F1DB1429793478000A5A98 /* VideoRenderController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VideoRenderController.m; sourceTree = "<group>"; };
+		3A483FD158DCA9DF08078E51 /* Pods-MediaPlayer.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MediaPlayer.release.xcconfig"; path = "Target Support Files/Pods-MediaPlayer/Pods-MediaPlayer.release.xcconfig"; sourceTree = "<group>"; };
+		57A042D39ABEA644A9580924 /* Pods_MediaPlayer_MediaPlayerUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_MediaPlayer_MediaPlayerUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		6D80ADD567D184878302BD95 /* Pods_MediaPlayer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_MediaPlayer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		78CB2ACDCFA98340DDBD0D1F /* Pods-MediaPlayerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MediaPlayerTests.release.xcconfig"; path = "Target Support Files/Pods-MediaPlayerTests/Pods-MediaPlayerTests.release.xcconfig"; sourceTree = "<group>"; };
+		85E1142E61BBD13F2E1CFB61 /* Pods-MediaPlayer-MediaPlayerUITests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MediaPlayer-MediaPlayerUITests.release.xcconfig"; path = "Target Support Files/Pods-MediaPlayer-MediaPlayerUITests/Pods-MediaPlayer-MediaPlayerUITests.release.xcconfig"; sourceTree = "<group>"; };
+		99AF20981BC681710AA2CCDA /* Pods-MediaPlayer-MediaPlayerUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MediaPlayer-MediaPlayerUITests.debug.xcconfig"; path = "Target Support Files/Pods-MediaPlayer-MediaPlayerUITests/Pods-MediaPlayer-MediaPlayerUITests.debug.xcconfig"; sourceTree = "<group>"; };
+		B47E9C798C1C167BEB725C7E /* Pods-MediaPlayer.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MediaPlayer.debug.xcconfig"; path = "Target Support Files/Pods-MediaPlayer/Pods-MediaPlayer.debug.xcconfig"; sourceTree = "<group>"; };
+		DAEBE8327C1613299C59BD8F /* Pods_MediaPlayerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_MediaPlayerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +86,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C9DC37AD24AF710A3020149F /* Pods_MediaPlayer.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -80,6 +94,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3C41B4DE91A4F82CCB186DD9 /* Pods_MediaPlayerTests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,6 +102,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				63EA2D640AC9FDB40964C9B2 /* Pods_MediaPlayer_MediaPlayerUITests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -100,6 +116,7 @@
 				289F3123297A3FEF0019E83C /* CameraSource.m */,
 				28B84FBF2984F09200817533 /* MultiCameraSource.h */,
 				28B84FC02984F09200817533 /* MultiCameraSource.m */,
+				2852549A29A76F7D008C8EAB /* GLDefines.h */,
 			);
 			path = Tools;
 			sourceTree = "<group>";
@@ -111,6 +128,8 @@
 				28F1DAF5297930B9000A5A98 /* MediaPlayerTests */,
 				28F1DAFF297930B9000A5A98 /* MediaPlayerUITests */,
 				28F1DAD8297930B7000A5A98 /* Products */,
+				51C8DE5BAB63A85AD5E9574D /* Pods */,
+				A2CDD6F6CB6F3645318A06CF /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -129,12 +148,6 @@
 			children = (
 				289F3121297A3F5D0019E83C /* Tools */,
 				28F1DB0F297930FE000A5A98 /* Views */,
-				28F1DADA297930B7000A5A98 /* AppDelegate.h */,
-				28F1DADB297930B7000A5A98 /* AppDelegate.m */,
-				28F1DADD297930B7000A5A98 /* SceneDelegate.h */,
-				28F1DADE297930B7000A5A98 /* SceneDelegate.m */,
-				28F1DAE0297930B7000A5A98 /* ViewController.h */,
-				28F1DAE1297930B7000A5A98 /* ViewController.m */,
 				28F1DAE3297930B7000A5A98 /* Main.storyboard */,
 				28F1DAE6297930B8000A5A98 /* Assets.xcassets */,
 				28F1DAE8297930B8000A5A98 /* LaunchScreen.storyboard */,
@@ -164,12 +177,41 @@
 		28F1DB0F297930FE000A5A98 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				28F1DADA297930B7000A5A98 /* AppDelegate.h */,
+				28F1DADB297930B7000A5A98 /* AppDelegate.m */,
+				28F1DADD297930B7000A5A98 /* SceneDelegate.h */,
+				28F1DADE297930B7000A5A98 /* SceneDelegate.m */,
+				28F1DAE0297930B7000A5A98 /* ViewController.h */,
+				28F1DAE1297930B7000A5A98 /* ViewController.m */,
 				28F1DB1029793454000A5A98 /* BaseViewController.h */,
 				28F1DB1129793454000A5A98 /* BaseViewController.m */,
 				28F1DB1329793478000A5A98 /* VideoRenderController.h */,
 				28F1DB1429793478000A5A98 /* VideoRenderController.m */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		51C8DE5BAB63A85AD5E9574D /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				B47E9C798C1C167BEB725C7E /* Pods-MediaPlayer.debug.xcconfig */,
+				3A483FD158DCA9DF08078E51 /* Pods-MediaPlayer.release.xcconfig */,
+				99AF20981BC681710AA2CCDA /* Pods-MediaPlayer-MediaPlayerUITests.debug.xcconfig */,
+				85E1142E61BBD13F2E1CFB61 /* Pods-MediaPlayer-MediaPlayerUITests.release.xcconfig */,
+				05A503082A165FEE75488E17 /* Pods-MediaPlayerTests.debug.xcconfig */,
+				78CB2ACDCFA98340DDBD0D1F /* Pods-MediaPlayerTests.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		A2CDD6F6CB6F3645318A06CF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				6D80ADD567D184878302BD95 /* Pods_MediaPlayer.framework */,
+				57A042D39ABEA644A9580924 /* Pods_MediaPlayer_MediaPlayerUITests.framework */,
+				DAEBE8327C1613299C59BD8F /* Pods_MediaPlayerTests.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -179,9 +221,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 28F1DB06297930B9000A5A98 /* Build configuration list for PBXNativeTarget "MediaPlayer" */;
 			buildPhases = (
+				4F0DEC7E8F6FA6BE6E00AA6A /* [CP] Check Pods Manifest.lock */,
 				28F1DAD3297930B7000A5A98 /* Sources */,
 				28F1DAD4297930B7000A5A98 /* Frameworks */,
 				28F1DAD5297930B7000A5A98 /* Resources */,
+				0158D5C2C618AEAAC7411435 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,6 +240,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 28F1DB09297930B9000A5A98 /* Build configuration list for PBXNativeTarget "MediaPlayerTests" */;
 			buildPhases = (
+				3882265F09A1BF4028F8D3CF /* [CP] Check Pods Manifest.lock */,
 				28F1DAEE297930B9000A5A98 /* Sources */,
 				28F1DAEF297930B9000A5A98 /* Frameworks */,
 				28F1DAF0297930B9000A5A98 /* Resources */,
@@ -214,9 +259,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 28F1DB0C297930B9000A5A98 /* Build configuration list for PBXNativeTarget "MediaPlayerUITests" */;
 			buildPhases = (
+				B86E636AF4E8A6510B5F39B8 /* [CP] Check Pods Manifest.lock */,
 				28F1DAF8297930B9000A5A98 /* Sources */,
 				28F1DAF9297930B9000A5A98 /* Frameworks */,
 				28F1DAFA297930B9000A5A98 /* Resources */,
+				CC66952998593579B8025D14 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -296,6 +343,109 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		0158D5C2C618AEAAC7411435 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-MediaPlayer/Pods-MediaPlayer-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-MediaPlayer/Pods-MediaPlayer-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MediaPlayer/Pods-MediaPlayer-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		3882265F09A1BF4028F8D3CF /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-MediaPlayerTests-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		4F0DEC7E8F6FA6BE6E00AA6A /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-MediaPlayer-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		B86E636AF4E8A6510B5F39B8 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-MediaPlayer-MediaPlayerUITests-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		CC66952998593579B8025D14 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-MediaPlayer-MediaPlayerUITests/Pods-MediaPlayer-MediaPlayerUITests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-MediaPlayer-MediaPlayerUITests/Pods-MediaPlayer-MediaPlayerUITests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MediaPlayer-MediaPlayerUITests/Pods-MediaPlayer-MediaPlayerUITests-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		28F1DAD3297930B7000A5A98 /* Sources */ = {
@@ -477,6 +627,7 @@
 		};
 		28F1DB07297930B9000A5A98 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B47E9C798C1C167BEB725C7E /* Pods-MediaPlayer.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -504,6 +655,7 @@
 		};
 		28F1DB08297930B9000A5A98 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3A483FD158DCA9DF08078E51 /* Pods-MediaPlayer.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -531,6 +683,7 @@
 		};
 		28F1DB0A297930B9000A5A98 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 05A503082A165FEE75488E17 /* Pods-MediaPlayerTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -548,6 +701,7 @@
 		};
 		28F1DB0B297930B9000A5A98 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 78CB2ACDCFA98340DDBD0D1F /* Pods-MediaPlayerTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
@@ -565,6 +719,7 @@
 		};
 		28F1DB0D297930B9000A5A98 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 99AF20981BC681710AA2CCDA /* Pods-MediaPlayer-MediaPlayerUITests.debug.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -580,6 +735,7 @@
 		};
 		28F1DB0E297930B9000A5A98 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 85E1142E61BBD13F2E1CFB61 /* Pods-MediaPlayer-MediaPlayerUITests.release.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

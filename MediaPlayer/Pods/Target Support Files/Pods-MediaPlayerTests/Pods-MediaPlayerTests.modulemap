@@ -1,0 +1,6 @@
+framework module Pods_MediaPlayerTests {
+  umbrella header "Pods-MediaPlayerTests-umbrella.h"
+
+  export *
+  module * { export * }
+}
