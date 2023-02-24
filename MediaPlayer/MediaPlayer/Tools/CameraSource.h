@@ -17,11 +17,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, strong) GPUImageView* previewView;
 
--(instancetype)initWithDelegate:(BOOL)isFront renderView:(BaseViewController*)renderView;
+-(instancetype)init;
 
 -(void)startCaptureVideo;
 
--(void )stopCaptureVideo;
+-(void)stopCaptureVideo;
 
 @end
 

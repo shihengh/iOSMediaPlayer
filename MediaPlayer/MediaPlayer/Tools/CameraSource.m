@@ -19,10 +19,10 @@
 #import <AVFoundation/AVFoundation.h>
 
 static const GLfloat IntegrationSquareVertices[] = {
-    -1.0f, -1.0f,
-    1.0f, -1.0f,
-    -1.0f,  1.0f,
-    1.0f,  1.0f,
+    -1.0f,  -1.0f,
+     1.0f,  -1.0f,
+    -1.0f,   1.0f,
+     1.0f,   1.0f,
 };
 
 @interface CameraSource() <AVCaptureVideoDataOutputSampleBufferDelegate>{
@@ -35,12 +35,11 @@ static const GLfloat IntegrationSquareVertices[] = {
 }
 
 @property(strong, nonatomic) AVCaptureSession* session;
-@property(strong, nonatomic) BaseViewController* renderView;
 
-@property (nonatomic, assign) BOOL captureFullRange;
+@property (nonatomic, assign) BOOL captureFullRange;                       ///  全屏
 @property (readwrite, nonatomic, copy) NSString *captureSessionPreset;     ///  清晰度
 @property (nonatomic, readwrite) AVCaptureDevicePosition cameraPosition;   ///  摄像头
-@property (nonatomic, readwrite) CGSize cameraVideoSize;                   ///  清晰度矩阵
+@property (nonatomic, readwrite) CGSize cameraVideoSize;                   ///  视频显示清晰度
 
 @property (nonatomic, weak) AVCaptureDevice *frontCamera;
 @property (nonatomic, weak) AVCaptureDevice *backCamera;
@@ -60,13 +59,13 @@ static const GLfloat IntegrationSquareVertices[] = {
 @property (nonatomic, strong) GPUImageFramebuffer *rgbOffscreenBuffer;       /// 离屏渲染FBO
 @property (nonatomic, assign) GPUTextureOptions outputTextureOptions;        /// 创建纹理参数
 
-@property (nonatomic) dispatch_semaphore_t frameRenderingSemaphore;
+@property (nonatomic) dispatch_semaphore_t frameRenderingSemaphore;          /// 信号量
 
 @end
 
 @implementation CameraSource
 
--(instancetype)initWithDelegate:(BOOL)isFront renderView:(BaseViewController*)renderView{
+-(instancetype)init{
     if(self == [super init]){
         
         /// 串型队列
@@ -74,8 +73,9 @@ static const GLfloat IntegrationSquareVertices[] = {
         
         /// 初始化chain head
         _beautyInFilter = [[GPUImageFilter alloc] init];
+        
+        /// 本地预览图层
         _previewView = [[GPUImageView alloc] initWithFrame: [UIScreen mainScreen].bounds];
-        // camera position are front
         [_previewView setAutoresizingMask:UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
         
         /// 信号量 几个变量可以访问
@@ -91,14 +91,11 @@ static const GLfloat IntegrationSquareVertices[] = {
         _outputTextureOptions.type = GL_UNSIGNED_BYTE;
         
         /// @remark 开始相机捕捉
-        self.renderView = renderView;
         self.cameraPosition  = AVCaptureDevicePositionBack;
         self.cameraVideoSize = CGSizeMake(1280, 720);
         
         /// 初始化设备采集
         [self setupVideoSession];
-        
-        [self startCaptureVideo];
     }
     return self;
 }
@@ -176,9 +173,6 @@ static const GLfloat IntegrationSquareVertices[] = {
     
     if(self.session.isRunning){
         [self willOutputSampleBuffer:sampleBuffer];
-        //        if(_renderView && [_renderView isKindOfClass:[BaseViewController class]] && _renderView){
-        //
-        //        }
     }else{
         NSLog(@"[%p:%d] session is stop capture!]", __func__, __LINE__);
     }
@@ -400,24 +394,42 @@ static const GLfloat IntegrationSquareVertices[] = {
 }
 
 -(void)startCaptureVideo{
-    NSLog(@"function = [%p] line = [%d] startCaptureVideo", __func__, __LINE__);
     /// 会阻塞当前线程，block添加到queue中后就会立即返回执行线程中后面的方法，
     __weak typeof (self) weakSelf = self;
     dispatch_barrier_async(_sessionQueue, ^{
         __strong typeof (weakSelf) strongSelf = weakSelf;
         if(![strongSelf.session isRunning]){
             [strongSelf.session startRunning];
+            NSLog(@"function = [%p] line = [%d] startCaptureVideo", __func__, __LINE__);
         }
     });
 }
 
--(void )stopCaptureVideo{
+-(void)stopCaptureVideo{
     NSLog(@"function = [%p] line = [%d] stopCaptureVideo", __func__, __LINE__);
     __weak typeof (self) weakSelf = self;
     dispatch_barrier_async(_sessionQueue, ^{
         __strong typeof (weakSelf) strongSelf = weakSelf;
         if([strongSelf.session isRunning]){
             [strongSelf.session stopRunning];
+            /**
+            {
+                [self->_session.inputs enumerateObjectsUsingBlock:^(__kindof AVCaptureInput * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop){
+                    [self->_session removeInput:obj];
+                }];
+    
+                [self->_session.outputs enumerateObjectsUsingBlock:^(__kindof AVCaptureOutput * _Nonnull obj,
+                                                                      NSUInteger idx, BOOL * _Nonnull stop) {
+                    [self->_session removeOutput:obj];
+                }];
+    
+                AVCaptureConnection *connection = [self->_videoOutput connectionWithMediaType:AVMediaTypeVideo];
+                if (connection) {
+                    [self->_session removeConnection:connection];
+                }
+            }
+            */
+            NSLog(@"function = [%p] line = [%d] startCaptureVideo", __func__, __LINE__);
         }
     });
 }

@@ -11,9 +11,10 @@
 
 @interface VideoRenderController ()
 
-@property(nonatomic, strong) UIButton* play;
 @property(nonatomic, strong) CameraSource* source;
 @property(nonatomic, strong) MultiCameraSource* multiSource;
+
+@property (nonatomic, strong) UISwitch *beautySwitch;
 
 @end
 
@@ -21,7 +22,7 @@
 
 -(instancetype)init{
     if(self == [super init]){
-        _source = [[CameraSource  alloc] initWithDelegate: true renderView:self];
+        _source = [[CameraSource  alloc] init];
 //        _multiSource = [[MultiCameraSource alloc] init];
     }
     return self;
@@ -32,32 +33,46 @@
     // Do any additional setup after loading the view.
     [self.view addSubview:_source.previewView];
     
-    [self.view addSubview:self.play];
-//    [_source startCaptureVideo];
+    [self.view addSubview:self.beautySwitch];
 }
 
 - (void)viewDidLayoutSubviews{
     [super viewDidLayoutSubviews];
 }
 
-- (UIButton *)play{
-    if(!_play){
-        _play = [[UIButton alloc] initWithFrame:CGRectMake(
-                                                           (self.view.bounds.size.width - 100) / 2.0 ,
-                                                           (self.view.bounds.size.height - 50) / 2.0,
-                                                           100, 50)];
-        [_play addTarget:self action:@selector(playButtonPressed:) forControlEvents:UIControlEventTouchUpInside];
-        [_play setTitle:@"play" forState:UIControlStateNormal];
-    }
-    return _play;
-}
-
 -(void)playButtonPressed:(UIButton*)button{
     if([[button currentTitle] compare:@"play"] == NSOrderedSame){
         [_source startCaptureVideo];
+        [button setTitle:@"stop" forState:UIControlStateNormal];
     }else {
-        
+        [_source stopCaptureVideo];
+        [button setTitle:@"start" forState:UIControlStateNormal];
     }
 }
 
+- (UISwitch *)beautySwitch{
+    if (!_beautySwitch) {
+        _beautySwitch = [[UISwitch alloc] initWithFrame:CGRectMake(40, 100, 100, 40)];
+        _beautySwitch.on = NO;
+        [_beautySwitch addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValueChanged];
+        
+        UILabel *beautyLabel = [[UILabel alloc] initWithFrame:CGRectMake(40, CGRectGetHeight(_beautySwitch.bounds) + 100, CGRectGetWidth(_beautySwitch.bounds), 40)];
+        beautyLabel.text = @"开";
+        beautyLabel.textAlignment = NSTextAlignmentCenter;
+        beautyLabel.textColor = [UIColor redColor];
+        beautyLabel.tag = 100;
+        [self.view addSubview:beautyLabel];
+    }
+    return _beautySwitch;
+}
+
+- (void)switchChanged:(UISwitch *)switchControl{
+    if(switchControl.on){
+        [_source startCaptureVideo];
+    }else{
+        [_source stopCaptureVideo];
+    }
+    UILabel *beautyLabel = [self.view viewWithTag:100];
+    beautyLabel.text = switchControl.on ? @"开":@"关";
+}
 @end
