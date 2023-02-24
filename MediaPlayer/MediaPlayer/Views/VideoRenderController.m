@@ -30,9 +30,9 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
+    [self.view addSubview:_source.previewView];
     
     [self.view addSubview:self.play];
-    
 //    [_source startCaptureVideo];
 }
 
