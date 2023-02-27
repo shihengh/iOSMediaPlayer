@@ -96,8 +96,21 @@ static const GLfloat IntegrationSquareVertices[] = {
         
         /// 初始化设备采集
         [self setupVideoSession];
+    
+        /// 设备摆放位置通知
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(deviceOrientationDidChange:)
+                                                     name:UIDeviceOrientationDidChangeNotification
+                                                   object:nil];
+        
+        NSLog(@"construct=[%@][%p]", NSStringFromClass([self class]), self);
+
     }
     return self;
+}
+
+- (void)dealloc{
+    NSLog(@"[%s:%d]", __FUNCTION__, __LINE__);
 }
 
 -(void)setupWithMetaData:(NSDictionary*)params{
@@ -158,6 +171,10 @@ static const GLfloat IntegrationSquareVertices[] = {
         
         [self changeCameraVideoSize:self->_cameraVideoSize];
         
+        [self deviceOrientationDidChange:nil];
+        
+        [self autoSetCaptureMirrored];
+        
         [self.session commitConfiguration];
     });
 }
@@ -215,8 +232,6 @@ static const GLfloat IntegrationSquareVertices[] = {
         /// 是进行加1操作。如果dispatch_semaphore_wait减1前如果小于1，则一直等待。
         dispatch_semaphore_signal(self->_frameRenderingSemaphore);
     });
-    
-   
 }
 
 -(GLuint)converYUV2RGBTextureID:(CVPixelBufferRef)cameraFrame
@@ -393,6 +408,33 @@ static const GLfloat IntegrationSquareVertices[] = {
     }
 }
 
+-(void)changeCapturePosition:(AVCaptureDevicePosition)position{
+    self.cameraPosition = position;
+    
+    NSError *error;
+    AVCaptureDeviceInput *newInput = [[AVCaptureDeviceInput alloc] initWithDevice: [self currentDevice] error:&error];
+    if(newInput == nil || _session == nil){
+        NSLog(@"[%s:%d] position=[%d] set falied!", __FUNCTION__, __LINE__, (int)position);
+        return;
+    }else{
+        [_session beginConfiguration];
+        /// @remark 注意这里摄像头Session是只能添加一个input的 先移除 再CanAddInput
+        [_session removeInput:_videoInput];
+        if([_session canAddInput:newInput]){
+            [_session addInput:newInput];
+            _videoInput = newInput;
+        }else{
+            [_session addInput:_videoInput];
+        }
+        
+        [self deviceOrientationDidChange:nil];
+        
+        [self autoSetCaptureMirrored];
+        
+        [_session commitConfiguration];
+    }
+}
+
 -(void)startCaptureVideo{
     /// 会阻塞当前线程，block添加到queue中后就会立即返回执行线程中后面的方法，
     __weak typeof (self) weakSelf = self;
@@ -406,12 +448,13 @@ static const GLfloat IntegrationSquareVertices[] = {
 }
 
 -(void)stopCaptureVideo{
-    NSLog(@"function = [%p] line = [%d] stopCaptureVideo", __func__, __LINE__);
+
     __weak typeof (self) weakSelf = self;
     dispatch_barrier_async(_sessionQueue, ^{
         __strong typeof (weakSelf) strongSelf = weakSelf;
         if([strongSelf.session isRunning]){
             [strongSelf.session stopRunning];
+            NSLog(@"function = [%p] line = [%d] stopCaptureVideo", __func__, __LINE__);
             /**
             {
                 [self->_session.inputs enumerateObjectsUsingBlock:^(__kindof AVCaptureInput * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop){
@@ -429,7 +472,6 @@ static const GLfloat IntegrationSquareVertices[] = {
                 }
             }
             */
-            NSLog(@"function = [%p] line = [%d] startCaptureVideo", __func__, __LINE__);
         }
     });
 }
@@ -483,5 +525,41 @@ static const GLfloat IntegrationSquareVertices[] = {
     if (preContext != dyContext){
         [EAGLContext setCurrentContext:dyContext];
     }
+}
+
+-(void)autoSetCaptureMirrored{
+    /// 前置镜像
+    if([self currentDevice] == _frontCamera){
+        [_session beginConfiguration];
+        AVCaptureConnection *connect = [_videoOutput connectionWithMediaType:AVMediaTypeVideo];
+        connect.videoMirrored = true;
+        [_session commitConfiguration];
+    }
+}
+
+-(void)deviceOrientationDidChange:(NSNotification *)not{
+    /// 设备当前方向
+    UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
+    
+    AVCaptureConnection *connect = [_videoOutput connectionWithMediaType:AVMediaTypeVideo];
+    
+    switch(orientation){
+        case UIDeviceOrientationPortrait:
+            connect.videoOrientation = AVCaptureVideoOrientationPortrait;
+            break;
+        case UIDeviceOrientationPortraitUpsideDown:
+            connect.videoOrientation = AVCaptureVideoOrientationPortraitUpsideDown;
+            break;
+        case UIDeviceOrientationLandscapeLeft:  /// home to the right
+            connect.videoOrientation = AVCaptureVideoOrientationLandscapeRight;
+            break;
+        case UIDeviceOrientationLandscapeRight: /// home to the left
+            connect.videoOrientation = AVCaptureVideoOrientationLandscapeLeft;
+            break;
+        default:
+            connect.videoOrientation = AVCaptureVideoOrientationPortrait;
+            break;
+    }
+    NSLog(@"[%s:%d] current UIDeviceOrientationPortrait=[%d]", __FUNCTION__, __LINE__, (int)orientation);
 }
 @end
