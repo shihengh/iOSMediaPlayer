@@ -33,6 +33,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// @brief 设置摄像头拍摄角度
 -(void)setupVideoCaptureOrientation;
 
+/// @brief 预览设置摄像头像素
+-(void)changeCameraVideoSize:(CGSize)cameraSize;
+
 @end
 
 NS_ASSUME_NONNULL_END

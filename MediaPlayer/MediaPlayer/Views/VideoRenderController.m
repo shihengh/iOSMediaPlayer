@@ -8,40 +8,36 @@
 #import "VideoRenderController.h"
 #import "CameraSource.h"
 #import "MultiCameraSource.h"
+#import "GLDefines.h"
 
 @interface VideoRenderController ()
 
 @property(nonatomic, strong) CameraSource* source;
-
 @property(nonatomic, strong) MultiCameraSource* multiSource;
 
 @property (nonatomic, strong) UISwitch *captureSwitch;
 @property (nonatomic, strong) UISwitch *positionSwitch;
+@property (nonatomic, strong) UIButton *videoSizeChangeBtn;
 
+@property (nonatomic, readonly) NSMutableArray* preSize;
 @end
 
 @implementation VideoRenderController
-
 
 -(instancetype)init{
     if(self == [super init]){
         _source = [[CameraSource  alloc] init];
 //        _multiSource = [[MultiCameraSource alloc] init];
         
-        /// 相机摆放位置通知
-//        [[NSNotificationCenter defaultCenter] addObserver:self
-//                                                 selector:@selector(deviceOrientationDidChangeForController)
-//                                                     name:UIDeviceOrientationDidChangeNotification
-//                                                   object:nil];
+        _preSize = [NSMutableArray arrayWithObjects:
+                    @[@1280, @720, @"1280*720"],
+                    @[@960,  @540, @"960*540"],
+                    @[@360,  @640, @"360*640"],
+                    @[@320,  @240, @"320*240"],
+                    nil];
     }
     return self;
 }
-
-//- (void)statusBarWillChange{
-//    UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
-//    NSLog(@"[%s:%d] orientation=[%d]", __FUNCTION__, __LINE__, (int)orientation);
-//
-//}
 
 - (void)dealloc{
     NSLog(@"[%s:%d]", __FUNCTION__, __LINE__);
@@ -53,8 +49,13 @@
     // Do any additional setup after loading the view.
     [self.view addSubview:_source.previewView];
     
-    [self.view addSubview:self.captureSwitch];
-    [self.view addSubview:self.positionSwitch];
+    UIButton* button = [UIButton buttonWithType:UIButtonTypeCustom];
+    [button setTitle:@"sadad" forState:UIControlStateNormal];
+    [button setFrame:CGRectMake(40, 260, 100, 40)];
+    
+    [self.view addSubview:self.captureSwitch];      ///  相机开启开关
+    [self.view addSubview:self.positionSwitch];     ///  前置/后置开关
+    [self.view addSubview:self.videoSizeChangeBtn];                   ///  分辨率
 }
 
 ///  @remark 开始捕捉视频帧 Switch
@@ -74,6 +75,7 @@
     return _captureSwitch;
 }
 
+///  @remark 开始捕捉视频帧 action
 - (void)captureSwitchChanged:(UISwitch *)switchControl{
     if(switchControl.on){
         [_source startCaptureVideo];
@@ -101,6 +103,7 @@
     return _positionSwitch;
 }
 
+/// @remark 前后置摄像头切换 action
 - (void)positionSwitchChanged:(UISwitch *)positionSwitch{
     if(positionSwitch.on){
         [_source changeCapturePosition:AVCaptureDevicePositionFront];
@@ -109,5 +112,23 @@
     }
     UILabel *beautyLabel = [self.view viewWithTag:101];
     beautyLabel.text = positionSwitch.on ? @"后置":@"前置";
+}
+
+-(UIButton*)videoSizeChangeBtn{
+    if(!_videoSizeChangeBtn){
+        _videoSizeChangeBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_videoSizeChangeBtn setTitle:@"1280*720" forState:UIControlStateNormal];
+        [_videoSizeChangeBtn setFrame:CGRectMake(40, 260, 100, 40)];
+        [_videoSizeChangeBtn addTarget:self action:@selector(videoSizeChange) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _videoSizeChangeBtn;
+}
+
+-(void)videoSizeChange{
+    static NSInteger index = 1;
+    [_source changeCameraVideoSize:CGSizeMake([_preSize[index][0] floatValue], [_preSize[index][1] floatValue])];
+    [_videoSizeChangeBtn setTitle: _preSize[index][2] forState:UIControlStateNormal];
+    index = (index + 1) % 4;
+    NSLog(@"[%s:%d] %@", __FUNCTION__, __LINE__, _preSize[index][2]);
 }
 @end

@@ -491,7 +491,8 @@ static const GLfloat IntegrationSquareVertices[] = {
     }else if(resolition == 1280*720){
         _captureSessionPreset = AVCaptureSessionPreset1280x720;
     }else if(resolition == 960*540){
-        _captureSessionPreset = @"AVCaptureSessionPreset960x540";
+        ///  暂时不用
+        /// _captureSessionPreset = @"AVCaptureSessionPreset960x540";
     }else if(resolition == 360*640 || resolition == 368*640){
         _captureSessionPreset = AVCaptureSessionPreset640x480;
     }else if(resolition == 320*240){
