@@ -20,8 +20,15 @@ static const GLfloat IntegrationSquareVertices[] = {
      1.0f,   1.0f,
 };
 
-@interface CameraRender (){
-    
+///  right-button
+static const GLfloat MinIntegrationSquareVertices[] = {
+     0.5f,   0.5f,
+     1.0f,   0.5f,
+     0.5f,   1.0f,
+     1.0f,   1.0f,
+};
+
+@interface CameraRender () {
     @protected
     GPUImageFilter *_beautyInFilter;
 }
@@ -30,17 +37,17 @@ static const GLfloat IntegrationSquareVertices[] = {
 @property (nonatomic, assign) int imageBufferHeight;                          /// 上屏height
 @property (nonatomic, assign) GLuint luminanceTexture;                        /// 亮度纹理
 @property (nonatomic, assign) GLuint chrominanceTexture;                      /// 颜色纹理
+@property (nonatomic, strong) GLProgram *offscreenYuv2RgbConversionProgram;   /// 着色器程序
+@property (nonatomic, strong) GPUImageFramebuffer *rgbOffscreenBuffer;        /// 离屏渲染FBO
+@property (nonatomic) dispatch_semaphore_t frameRenderingSemaphore;           /// 信号量
+
+/// @remark 提供子类接口
 @property (nonatomic, assign) GLint yuvConversionPositionAttribute;           /// 定点坐标
 @property (nonatomic, assign) GLint yuvConversionTextureCoordinateAttribute;  /// 纹理坐标
 @property (nonatomic, assign) GLint yuvConversionLuminanceTextureUniform;     /// 亮度纹理texture
 @property (nonatomic, assign) GLint yuvConversionChrominanceTextureUniform;   /// 颜色纹理texture
 @property (nonatomic, assign) GLint yuvConversionMatrixUniform;               /// 颜色转换矩阵
 
-@property (nonatomic, strong) GLProgram *offscreenYuv2RgbConversionProgram;   /// 着色器程序
-@property (nonatomic, strong) GPUImageFramebuffer *rgbOffscreenBuffer;        /// 离屏渲染FBO
-@property (nonatomic, assign) GPUTextureOptions outputTextureOptions;         /// 创建纹理参数
-
-@property (nonatomic) dispatch_semaphore_t frameRenderingSemaphore;           /// 信号量
 @end
 
 @implementation CameraRender
@@ -49,19 +56,6 @@ static const GLfloat IntegrationSquareVertices[] = {
     if(self == [super init]){
         /// 初始化chain head
         _beautyInFilter = [[GPUImageFilter alloc] init];
-        
-        /// 本地预览图层
-        _previewView = [[GPUImageView alloc] initWithFrame: [UIScreen mainScreen].bounds];
-        [_previewView setAutoresizingMask:UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
-        
-        /// 初始化创建texture options
-        _outputTextureOptions.minFilter = GL_LINEAR;
-        _outputTextureOptions.magFilter = GL_LINEAR;
-        _outputTextureOptions.wrapS = GL_CLAMP_TO_EDGE;
-        _outputTextureOptions.wrapT = GL_CLAMP_TO_EDGE;
-        _outputTextureOptions.internalFormat = GL_RGBA;
-        _outputTextureOptions.format = GL_BGRA;
-        _outputTextureOptions.type = GL_UNSIGNED_BYTE;
         
         /// 信号量 几个变量可以访问
         self.frameRenderingSemaphore = dispatch_semaphore_create(1);
@@ -77,6 +71,13 @@ static const GLfloat IntegrationSquareVertices[] = {
 -(void)setupWithMetaData:(NSDictionary*)params{
     /// 将视频渲染结果放入preview
     [_beautyInFilter addTarget:self.previewView];
+}
+
+#pragma mark - CameraRenderDelegate Delegate
+- (void)willOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer isFront:(BOOL)isFront{
+    if(isFront){
+        [self willOutputSampleBuffer:sampleBuffer];
+    }
 }
 
 #pragma mark - CameraRenderDelegate Delegate
@@ -135,48 +136,50 @@ static const GLfloat IntegrationSquareVertices[] = {
     const GLfloat *preferredConversion = NULL;
     
     /// @remark 获取颜色转换矩阵转换点
-    CFTypeRef colorAttachments = CVBufferCopyAttachment(cameraFrame, kCVImageBufferYCbCrMatrixKey, NULL);
-    if (colorAttachments != NULL){
-        if(CFStringCompare(colorAttachments, kCVImageBufferYCbCrMatrix_ITU_R_601_4, 0) == kCFCompareEqualTo){
+    if (@available(iOS 15.0, *)) {
+        CFTypeRef colorAttachments = CVBufferCopyAttachment(cameraFrame, kCVImageBufferYCbCrMatrixKey, NULL);
+        if (colorAttachments != NULL){
+            if(CFStringCompare(colorAttachments, kCVImageBufferYCbCrMatrix_ITU_R_601_4, 0) == kCFCompareEqualTo){
+                if (yuvFullRange){
+                    preferredConversion = kColorConversion601FullRange;
+                }else{
+                    preferredConversion = kColorConversion601;
+                }
+            }else{
+                preferredConversion = kColorConversion709;
+            }
+        }else{
             if (yuvFullRange){
                 preferredConversion = kColorConversion601FullRange;
             }else{
                 preferredConversion = kColorConversion601;
             }
-        }else{
-            preferredConversion = kColorConversion709;
         }
-    }else{
-        if (yuvFullRange){
-            preferredConversion = kColorConversion601FullRange;
-        }else{
-            preferredConversion = kColorConversion601;
-        }
+    } else {
+        // Fallback on earlier versions
     }
     
     [self loadYuv2RgbShaderIfNeed];
-    
     [self uploadYUVData2TexutreId:cameraFrame pixelWidth:bufferWidth pixelHeight:bufferHeight];
-    
     return [self offScreenRender2TextureId:self.luminanceTexture chrominanceTexture:self.chrominanceTexture preferredConversion:preferredConversion];
 }
 
 - (GLuint)offScreenRender2TextureId:(GLuint)luminanceTexture
                chrominanceTexture:(GLuint)chrominanceTexture
                 preferredConversion:(const GLfloat *)preferredConversion{
-    [GPUImageContext setActiveShaderProgram:_offscreenYuv2RgbConversionProgram];
+    [GPUImageContext setActiveShaderProgram:self.offscreenYuv2RgbConversionProgram];
     glEnableVertexAttribArray(_yuvConversionPositionAttribute);
     glEnableVertexAttribArray(_yuvConversionTextureCoordinateAttribute);
     
     int rotatedImageBufferWidth = self.imageBufferWidth, rotatedImageBufferHeight = self.imageBufferHeight;
 
     /// 创建空的 FBO
-    if (_rgbOffscreenBuffer == nil) {
-        _rgbOffscreenBuffer = [[GPUImageContext sharedFramebufferCache] fetchFramebufferForSize:CGSizeMake(rotatedImageBufferWidth, rotatedImageBufferHeight) textureOptions:self.outputTextureOptions onlyTexture:NO];
-        [_rgbOffscreenBuffer lock];
+    if (self.rgbOffscreenBuffer == nil) {
+        self.rgbOffscreenBuffer = [[GPUImageContext sharedFramebufferCache] fetchFramebufferForSize:CGSizeMake(rotatedImageBufferWidth, rotatedImageBufferHeight) textureOptions:self.outputTextureOptions onlyTexture:NO];
+        [self.rgbOffscreenBuffer lock];
     }
     
-    [_rgbOffscreenBuffer activateFramebuffer];
+    [self.rgbOffscreenBuffer activateFramebuffer];
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
@@ -194,41 +197,44 @@ static const GLfloat IntegrationSquareVertices[] = {
     glVertexAttribPointer(_yuvConversionTextureCoordinateAttribute, 2, GL_FLOAT, 0, 0, [GPUImageFilter textureCoordinatesForRotation:kGPUImageNoRotation]);
     
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    
     glFlush();//立即清空OpenGL指令，避免_rgbOffscreenBuffer的textureId落后pixelbuffer
     
     return self.rgbOffscreenBuffer.texture;
 }
 
 - (void)loadYuv2RgbShaderIfNeed{
-    if(_offscreenYuv2RgbConversionProgram == nil){
-//        /// fullRange
-//        {
-//            _offscreenYuv2RgbConversionProgram = [[GPUImageContext sharedImageProcessingContext] programForVertexShaderString:kGPUImageVertexShaderString fragmentShaderString:kGPUImageYUVFullRangeConversionForLAFragmentShaderString];
-//        }
+    if(self.offscreenYuv2RgbConversionProgram == nil){
+        //        /// fullRange
+        //        {
+        //            self.offscreenYuv2RgbConversionProgram = [[GPUImageContext sharedImageProcessingContext] programForVertexShaderString:kGPUImageVertexShaderString fragmentShaderString:kGPUImageYUVFullRangeConversionForLAFragmentShaderString];
+        //        }
         /// videoRange
         {
-            _offscreenYuv2RgbConversionProgram = [[GPUImageContext sharedImageProcessingContext] programForVertexShaderString:kGPUImageVertexShaderString
+            self.offscreenYuv2RgbConversionProgram = [[GPUImageContext sharedImageProcessingContext] programForVertexShaderString:kGPUImageVertexShaderString
                                                                                                          fragmentShaderString:kGPUImageYUVVideoRangeConversionForLAFragmentShaderString];
         }
-        if(!_offscreenYuv2RgbConversionProgram.initialized){
-            [_offscreenYuv2RgbConversionProgram addAttribute:@"position"];
-            [_offscreenYuv2RgbConversionProgram addAttribute:@"inputTextureCoordinate"];
-            if(![_offscreenYuv2RgbConversionProgram link]){
-                NSString *progLog = [_offscreenYuv2RgbConversionProgram programLog];
-                NSString *fragLog = [_offscreenYuv2RgbConversionProgram fragmentShaderLog];
-                NSString *vertLog = [_offscreenYuv2RgbConversionProgram vertexShaderLog];
+        if(!self.offscreenYuv2RgbConversionProgram.initialized){
+            [self.offscreenYuv2RgbConversionProgram addAttribute:@"position"];
+            [self.offscreenYuv2RgbConversionProgram addAttribute:@"inputTextureCoordinate"];
+            
+            if(![self.offscreenYuv2RgbConversionProgram link]){
+                NSString *progLog = [self.offscreenYuv2RgbConversionProgram programLog];
+                NSString *fragLog = [self.offscreenYuv2RgbConversionProgram fragmentShaderLog];
+                NSString *vertLog = [self.offscreenYuv2RgbConversionProgram vertexShaderLog];
                 NSLog(@"Program link log=[%@] \n"
                       "Fragment shader compile log=[%@] \n"
                       "Vertex shader compile log=[%@]   \n", progLog, fragLog, vertLog);
-                _offscreenYuv2RgbConversionProgram = nil;
+                self.offscreenYuv2RgbConversionProgram = nil;
                 NSAssert(NO, @"Filter shader link failed");
             }
         }
-        _yuvConversionPositionAttribute = [_offscreenYuv2RgbConversionProgram attributeIndex:@"position"];
-        _yuvConversionTextureCoordinateAttribute = [_offscreenYuv2RgbConversionProgram attributeIndex:@"inputTextureCoordinate"];
-        _yuvConversionLuminanceTextureUniform = [_offscreenYuv2RgbConversionProgram uniformIndex:@"luminanceTexture"];
-        _yuvConversionChrominanceTextureUniform = [_offscreenYuv2RgbConversionProgram uniformIndex:@"chrominanceTexture"];
-        _yuvConversionMatrixUniform = [_offscreenYuv2RgbConversionProgram uniformIndex:@"colorConversionMatrix"];
+        _yuvConversionPositionAttribute = [self.offscreenYuv2RgbConversionProgram attributeIndex:@"position"];
+        _yuvConversionTextureCoordinateAttribute = [self.offscreenYuv2RgbConversionProgram attributeIndex:@"inputTextureCoordinate"];
+        _yuvConversionLuminanceTextureUniform = [self.offscreenYuv2RgbConversionProgram uniformIndex:@"luminanceTexture"];
+        _yuvConversionChrominanceTextureUniform = [self.offscreenYuv2RgbConversionProgram uniformIndex:@"chrominanceTexture"];
+        _yuvConversionMatrixUniform = [self.offscreenYuv2RgbConversionProgram uniformIndex:@"colorConversionMatrix"];
+        INTEGRATION_CHECK_GL_ERROR
     }
 }
 
@@ -255,13 +261,15 @@ static const GLfloat IntegrationSquareVertices[] = {
                                                                GL_UNSIGNED_BYTE,
                                                                0,
                                                                &luminanceTextureRef);
+            
             if(err){
                 Loggerinfo(@"luminanceTextureRef create failed!");
             }
             self.luminanceTexture = CVOpenGLESTextureGetName(luminanceTextureRef);
-            glBindBuffer(GL_TEXTURE_2D, self.luminanceTexture);
+            glBindTexture(GL_TEXTURE_2D, self.luminanceTexture);
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            INTEGRATION_CHECK_GL_ERROR
             
             // UV-plane
             glActiveTexture(GL_TEXTURE1);
@@ -284,6 +292,7 @@ static const GLfloat IntegrationSquareVertices[] = {
             glBindTexture(GL_TEXTURE_2D, self.chrominanceTexture);
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            INTEGRATION_CHECK_GL_ERROR
             
             CVPixelBufferUnlockBaseAddress(cameraFrame, 0);
             CFRelease(luminanceTextureRef);
@@ -291,7 +300,6 @@ static const GLfloat IntegrationSquareVertices[] = {
         }
     }
 }
-
 
 /// @brief 切换到斗鱼上下文
 - (void)switch2DyGLContext{

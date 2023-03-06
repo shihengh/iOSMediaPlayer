@@ -7,18 +7,19 @@
 
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
-
 #import "GLDefines.h"
 #import "CameraSource.h"
 #import "MultiCameraSource.h"
+#import "Render.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface BaseViewController : UIViewController
 
-@property(nonatomic, strong) CameraSource* source;            /// 视频数据源
+@property (nonatomic, strong) id<Render> render;                 /// 视频帧处理
 
-@property(nonatomic, strong) MultiCameraSource* multiSource;  /// 多摄像机视频数据源
+@property(nonatomic, strong)  CameraSource* source;              /// 视频数据源
+@property(nonatomic, strong)  MultiCameraSource* multiSource;    /// 多摄像机视频数据源
 
 @end
 

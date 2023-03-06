@@ -15,12 +15,13 @@ API_AVAILABLE(ios(13.0))
 @interface MultiCameraSource () <AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate>{
     dispatch_queue_t _sessionQueue, _cameraProcessingQueue;
 }
-@property(assign, nonatomic) BOOL isMulti;
 
 @property(strong, nonatomic) AVCaptureMultiCamSession* multiSession;        /// 多摄session
 
-@property(strong, nonatomic) AVCaptureDeviceInput* frontCameraDeviceInput;  /// 前置相机
-@property(strong, nonatomic) AVCaptureDeviceInput* backCameraDeviceInput;   /// 后置相机
+@property (nonatomic, strong, nullable) id<RenderDelegate> delegate;        /// 渲染代理类
+
+@property(strong, nonatomic) AVCaptureDeviceInput* frontCameraDeviceInput;  /// 前置相机输入
+@property(strong, nonatomic) AVCaptureDeviceInput* backCameraDeviceInput;   /// 后置相机输入
 @property(strong, nonatomic) AVCaptureDeviceInput* microphoneDeviceInput;   /// 麦克风
 
 @property(strong, nonatomic) AVCaptureVideoDataOutput* backCameraVideoDataOutput;      /// 后置相机输出
@@ -38,20 +39,25 @@ API_AVAILABLE(ios(13.0))
 @implementation MultiCameraSource
 
 - (instancetype)init{
-    if(self = [super init]){
-        _isMulti = true;
-        
+    if(self = [super init]){        
         _sessionQueue = dispatch_queue_create("_sessionQueue", DISPATCH_QUEUE_SERIAL);
         
         /// 开始异步处理setupSession
-        dispatch_async(_sessionQueue, ^{
-            [self setupVideoSession];
-            [self->_multiSession startRunning];
-            NSLog(@"[%s:%d] isMulti=[%p]", __FUNCTION__, __LINE__,  self->_multiSession);
-        });
-        
+        [self setupVideoSession];
     }
     return self;
+}
+
+- (void)setDelegate:(id<RenderDelegate>)delegate{
+    if(delegate && [delegate respondsToSelector:@selector(willOutputSampleBuffer:isFront:)]){
+        _delegate = delegate;
+        dispatch_async(_sessionQueue, ^{
+            if(![self->_multiSession isRunning]){
+                [self->_multiSession startRunning];
+            }
+            NSLog(@"[%s:%d] isMulti=[%p]", __FUNCTION__, __LINE__,  self->_multiSession);
+        });
+    }
 }
 
 -(void)setupVideoSession{
@@ -66,10 +72,8 @@ API_AVAILABLE(ios(13.0))
         _cameraProcessingQueue = dispatch_queue_create("videoDataOutputQueue", DISPATCH_QUEUE_SERIAL);
         
         if(![AVCaptureMultiCamSession isMultiCamSupported]){
-            self.isMulti = false;
             return;
         }else{
-            self.isMulti = true;
             [_multiSession beginConfiguration];
             if(![self configureBackCamera]){
                 NSLog(@"configureBackCamera failed！");
@@ -87,7 +91,6 @@ API_AVAILABLE(ios(13.0))
             }
             [_multiSession commitConfiguration];
         }
-        NSLog(@"[%s:%d] isMulti=[%d]", __FUNCTION__, __LINE__,  self.isMulti);
     } else {
         NSLog(@"[%s:%d] @available iOS 13.0", __FUNCTION__, __LINE__);
     }
@@ -195,6 +198,7 @@ failed:
         if([_multiSession canAddOutput:_frontCameraVideoDataOutput]){
             [_frontCameraVideoDataOutput setVideoSettings:[NSDictionary dictionaryWithObject:[NSNumber numberWithInt:kCVPixelFormatType_420YpCbCr8BiPlanarFullRange] forKey:(id)kCVPixelBufferPixelFormatTypeKey]];
             [_multiSession addOutputWithNoConnections:_frontCameraVideoDataOutput];
+//            [_multiSession addOutput:_frontCameraVideoDataOutput];
             Loggerinfo(@"_frontCameraVideoDataOutput added!");
         }else{
             Loggerinfo(@"[_frontCameraVideoDataOutput add Failed!]");
@@ -204,8 +208,9 @@ failed:
         [_frontCameraVideoDataOutput setSampleBufferDelegate:self queue:_sessionQueue];
         
         /// Connect the back camera device input to the back camera video data output
-        id frontCameraVideoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:[NSArray arrayWithObjects:frontCameraVideoPort, nil] output:_frontCameraVideoDataOutput];
-        
+        AVCaptureConnection* frontCameraVideoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:[NSArray arrayWithObjects:frontCameraVideoPort, nil] output:_frontCameraVideoDataOutput];
+        frontCameraVideoDataOutputConnection.videoMirrored = true;
+
         if([_multiSession canAddConnection:frontCameraVideoDataOutputConnection]){
             [_multiSession addConnection:frontCameraVideoDataOutputConnection];
             [frontCameraVideoDataOutputConnection setVideoOrientation:AVCaptureVideoOrientationPortrait];
@@ -326,19 +331,11 @@ failed:
 
 #pragma delegate
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection{
-//    AVCaptureVideoDataOutput
-   
     if([output isKindOfClass:[AVCaptureVideoDataOutput class]]){
-        if(output == _frontCameraVideoDataOutput){
-            CVImageBufferRef cameraFrame = CMSampleBufferGetImageBuffer(sampleBuffer);
-            if(cameraFrame == nil){
-                [self print:@"frontCameraVideoDataOutput sampleBuffer is nil"];
-            }
-        }else if(output == _backCameraVideoDataOutput){
-            CVImageBufferRef cameraFrame = CMSampleBufferGetImageBuffer(sampleBuffer);
-            if(cameraFrame == nil){
-                [self print:@"_backCameraVideoDataOutput sampleBuffer is nil"];
-            }
+        if(output == _frontCameraVideoDataOutput && sampleBuffer && _delegate && [_delegate respondsToSelector:@selector(willOutputSampleBuffer:isFront:)]){
+            [_delegate willOutputSampleBuffer:sampleBuffer isFront:true];
+        }else if(output == _backCameraVideoDataOutput && sampleBuffer && _delegate && [_delegate respondsToSelector:@selector(willOutputSampleBuffer:isFront:)]){
+            [_delegate willOutputSampleBuffer:sampleBuffer isFront:false];
         }else{
             [self print:@"not define VideoDataOutput"];
         }

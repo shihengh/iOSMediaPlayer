@@ -1,8 +1,8 @@
 //
-//  MultiCameraSource.h
+//  MultiCameraRender.h
 //  MediaPlayer
 //
-//  Created by shimo-imac on 2023/1/28.
+//  Created by shimo-imac on 2023/3/1.
 //
 
 #import <Foundation/Foundation.h>
@@ -11,7 +11,9 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface MultiCameraSource : NSObject<Source>
+//@interface MultiCameraRender : NSObject<Render>
+@interface MultiCameraRender : CameraRender
+
 
 @end
 

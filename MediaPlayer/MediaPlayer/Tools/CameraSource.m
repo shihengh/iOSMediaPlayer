@@ -31,16 +31,16 @@ static const GLfloat IntegrationSquareVertices[] = {
     AVCaptureVideoDataOutput *_videoOutput;
 }
 
-@property(strong, nonatomic) AVCaptureSession* session;
+@property(strong, nonatomic) AVCaptureSession* session;                    /// session
+@property (nonatomic, strong, nullable) id<RenderDelegate> delegate;       /// 渲染代理类
+@property (nonatomic, weak) AVCaptureDevice *frontCamera;                  /// 前置设备
+@property (nonatomic, weak) AVCaptureDevice *backCamera;                   /// 后置设备
+@property (nonatomic, assign) NSUInteger frameNumber;                      /// 帧的数目 3帧内抛弃
 
 @property (nonatomic, assign) BOOL captureFullRange;                       ///  全屏
 @property (readwrite, nonatomic, copy) NSString *captureSessionPreset;     ///  清晰度
 @property (nonatomic, readwrite) AVCaptureDevicePosition cameraPosition;   ///  摄像头
 @property (nonatomic, readwrite) CGSize cameraVideoSize;                   ///  视频显示清晰度
-
-@property (nonatomic, weak) AVCaptureDevice *frontCamera;
-@property (nonatomic, weak) AVCaptureDevice *backCamera;
-@property (nonatomic, assign) NSUInteger frameNumber;                      /// 帧的数目 3帧内抛弃
 
 @end
 
@@ -176,6 +176,12 @@ static const GLfloat IntegrationSquareVertices[] = {
         [self autoSetCaptureMirrored];
         
         [_session commitConfiguration];
+    }
+}
+
+- (void)setDelegate:(id<RenderDelegate>)delegate{
+    if(delegate && [delegate respondsToSelector:@selector(willOutputSampleBuffer:)]){
+        _delegate = delegate;
     }
 }
 

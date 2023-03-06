@@ -26,10 +26,12 @@
     
     self.datas = [NSMutableArray arrayWithObjects:
                   @"VideoRenderController",
+                  @"MultiRenderController",
                   nil];
     
     self.titleData = [NSMutableArray arrayWithObjects:
                       @"视频播放",
+                      @"双摄双开",
                       nil];
     
     [self.view addSubview:self.tableView];
