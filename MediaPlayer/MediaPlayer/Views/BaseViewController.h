@@ -16,11 +16,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface BaseViewController : UIViewController
 
-@property (nonatomic, strong) id<Render> render;                 /// 视频帧处理
+@property (nonatomic, strong) id<Render> __nullable render;                 /// 视频帧处理
 
-@property(nonatomic, strong)  CameraSource* source;              /// 视频数据源
-@property(nonatomic, strong)  MultiCameraSource* multiSource;    /// 多摄像机视频数据源
-
+@property (nonatomic, strong) CameraSource* _Nullable  source;              /// 视频数据源
+@property (nonatomic, strong) MultiCameraSource* _Nullable  multiSource;    /// 多摄像机视频数据源
 @end
 
 NS_ASSUME_NONNULL_END

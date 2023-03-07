@@ -31,7 +31,7 @@
         
         /// 实例化渲染类和视频源
         self.render = [[CameraRender alloc] init];
-        self.source = [[CameraSource alloc] init];
+        self.source = [[CameraSource alloc] init]; 
         self.source.delegate = self.render;
     }
     return self;
@@ -39,6 +39,9 @@
 
 - (void)dealloc{
     NSLog(@"[%s:%d]", __FUNCTION__, __LINE__);
+    
+    self.render = nil;
+    self.source = nil;
 }
 
 - (void)viewDidLoad {

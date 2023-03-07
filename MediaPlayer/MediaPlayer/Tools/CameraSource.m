@@ -42,6 +42,9 @@ static const GLfloat IntegrationSquareVertices[] = {
 @property (nonatomic, readwrite) AVCaptureDevicePosition cameraPosition;   ///  摄像头
 @property (nonatomic, readwrite) CGSize cameraVideoSize;                   ///  视频显示清晰度
 
+
+@property (nonatomic, assign) BOOL sessionRunning;
+
 @end
 
 @implementation CameraSource
@@ -64,18 +67,21 @@ static const GLfloat IntegrationSquareVertices[] = {
                                                  selector:@selector(deviceOrientationDidChange:)
                                                      name:UIDeviceOrientationDidChangeNotification
                                                    object:nil];
-        
-        NSLog(@"construct=[%@][%p]", NSStringFromClass([self class]), self);
     }
     return self;
 }
 
 - (void)dealloc{
-    NSLog(@"[%s:%d]", __FUNCTION__, __LINE__);
+    NSLog(@"Camera Source is dealloc=[%p] [%p]", self, _session);
+    [self stopCaptureVideo];
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    self.delegate = nil;
+    _sessionQueue = nil;
 }
 
 -(void)setupVideoSession{
     dispatch_async(_sessionQueue, ^{
+        self.sessionRunning = YES;
         ///  pixebuffer queue
         self->_cameraProcessingQueue = dispatch_queue_create("videoDataOutputQueue", DISPATCH_QUEUE_SERIAL);
         
@@ -89,7 +95,7 @@ static const GLfloat IntegrationSquareVertices[] = {
             
             for(AVCaptureDevice *device in discoverySession.devices){
                 if(position == AVCaptureDevicePositionFront){
-                    self->_frontCamera = device;
+//                    self->_frontCamera = device;
                 }else if(position == AVCaptureDevicePositionBack){
                     self->_backCamera = device;
                 }
@@ -131,6 +137,8 @@ static const GLfloat IntegrationSquareVertices[] = {
         [self autoSetCaptureMirrored];
         
         [self.session commitConfiguration];
+        
+        NSLog(@"Camera Source construct=[%@][%p][%p]", NSStringFromClass([self class]), self, _session);
     });
 }
 
@@ -143,7 +151,7 @@ static const GLfloat IntegrationSquareVertices[] = {
         return;
     }
     
-    if(self.session.isRunning && sampleBuffer){
+    if(self.session.isRunning && sampleBuffer && self.sessionRunning){
         if(_delegate && [_delegate respondsToSelector:@selector(willOutputSampleBuffer:)]){
             [_delegate willOutputSampleBuffer:sampleBuffer];
         }
@@ -198,32 +206,56 @@ static const GLfloat IntegrationSquareVertices[] = {
 }
 
 -(void)stopCaptureVideo{
-
+    dispatch_sync(_sessionQueue, ^{
+        self.sessionRunning = NO;
+        if ([_session isRunning]){
+            [_session stopRunning];
+            [_session.inputs enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                NSLog(@"Camera Source removeInput=[%p]", obj);
+                [_session removeInput:obj];
+            }];
+            
+            [_session.outputs enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                NSLog(@"Camera Source removeOutput=[%p]", obj);
+                [_session removeOutput:obj];
+            }];
+            
+            [[_videoOutput connections] enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                NSLog(@"Camera Source removeConnection=[%p]", obj);
+                [_session removeConnection:obj];
+            }];
+            
+            _session = nil;
+            _backCamera = nil;
+            _frontCamera = nil;
+            _videoInput = nil;
+            _videoOutput = nil;
+        }
+    });
+#if 0
     __weak typeof (self) weakSelf = self;
     dispatch_barrier_async(_sessionQueue, ^{
         __strong typeof (weakSelf) strongSelf = weakSelf;
         if([strongSelf.session isRunning]){
             [strongSelf.session stopRunning];
-            NSLog(@"function = [%p] line = [%d] stopCaptureVideo", __func__, __LINE__);
-            /**
-            {
-                [self->_session.inputs enumerateObjectsUsingBlock:^(__kindof AVCaptureInput * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop){
-                    [self->_session removeInput:obj];
-                }];
-    
-                [self->_session.outputs enumerateObjectsUsingBlock:^(__kindof AVCaptureOutput * _Nonnull obj,
-                                                                      NSUInteger idx, BOOL * _Nonnull stop) {
-                    [self->_session removeOutput:obj];
-                }];
-    
-                AVCaptureConnection *connection = [self->_videoOutput connectionWithMediaType:AVMediaTypeVideo];
-                if (connection) {
-                    [self->_session removeConnection:connection];
-                }
-            }
-            */
+//            NSLog(@"function = [%p] line = [%d] stopCaptureVideo", __func__, __LINE__);
+//
+//            [self->_session.inputs enumerateObjectsUsingBlock:^(__kindof AVCaptureInput * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop){
+//                [self->_session removeInput:obj];
+//            }];
+//
+//            [self->_session.outputs enumerateObjectsUsingBlock:^(__kindof AVCaptureOutput * _Nonnull obj,
+//                                                                  NSUInteger idx, BOOL * _Nonnull stop) {
+//                [self->_session removeOutput:obj];
+//            }];
+//
+//            AVCaptureConnection *connection = [self->_videoOutput connectionWithMediaType:AVMediaTypeVideo];
+//            if (connection) {
+//                [self->_session removeConnection:connection];
+//            }
         }
     });
+#endif
 }
 
 ///  @brief 修改camera分辨率

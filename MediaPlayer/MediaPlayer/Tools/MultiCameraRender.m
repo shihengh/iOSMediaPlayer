@@ -192,6 +192,11 @@ NSString *const KDYGPUImageMediaFilterForFragmentShaderString = SHADER_STRING
             glVertexAttribPointer(_textureCoordinateAttribute, 2, GL_FLOAT, 0, 0, _secondCoordinates);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             
+            CVPixelBufferRef mixPixelBuffer = [_mixFrameBuffer pixelBuffer];
+            if(mixPixelBuffer){
+                Loggerinfo(@"mixPixBuffer success!");
+            }
+            
             INTEGRATION_CHECK_GL_ERROR
             _finishFront= 1;
         }
@@ -206,6 +211,11 @@ NSString *const KDYGPUImageMediaFilterForFragmentShaderString = SHADER_STRING
             glVertexAttribPointer(_textureCoordinateAttribute, 2, GL_FLOAT, 0, 0, _firstCoordinates);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             
+            CVPixelBufferRef mixPixelBuffer = [_mixFrameBuffer pixelBuffer];
+            if(mixPixelBuffer){
+                Loggerinfo(@"mixPixBuffer success!");
+            }
+            
             INTEGRATION_CHECK_GL_ERROR
             _finishBack = 1;
         }
@@ -215,9 +225,14 @@ NSString *const KDYGPUImageMediaFilterForFragmentShaderString = SHADER_STRING
         _finishBack  = 0;
         _finishFront = 0;
         
-        [_mixFrameBuffer unlock];
+       
         [self renderWithoutEffects:currentTime];
         Loggerinfo(@"mixFrameBuffer render!");
+        CVPixelBufferRef mixPixelBuffer = [_mixFrameBuffer pixelBuffer];
+        [_mixFrameBuffer unlock];
+        if(mixPixelBuffer){
+            Loggerinfo(@"mixPixBuffer success!");
+        }
     }
 }
 

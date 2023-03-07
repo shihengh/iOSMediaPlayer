@@ -26,6 +26,11 @@
     return self;
 }
 
+- (void)dealloc{
+    self.render = nil;
+    self.multiSource = nil;
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
 }

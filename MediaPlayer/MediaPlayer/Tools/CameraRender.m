@@ -62,8 +62,6 @@ static const GLfloat MinIntegrationSquareVertices[] = {
         
         /// 将输出加到_beautyInFilter
         [self setupWithMetaData:nil];
-        
-        NSLog(@"construct=[%@][%p]", NSStringFromClass([self class]), self);
     }
     return self;
 }

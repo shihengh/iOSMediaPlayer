@@ -29,11 +29,7 @@
 
 /// @remark 设置当前渲染的视图view
 - (void)setRender:(id<Render>)render{
-    if(render){
-        _render = render;
-    }else{
-        Loggerinfo(@"Render Set Failed!");
-    }
+    _render = render;
 }
 
 - (void)viewDidLoad {

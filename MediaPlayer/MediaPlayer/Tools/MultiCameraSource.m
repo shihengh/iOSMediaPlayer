@@ -5,6 +5,7 @@
 //  Created by shimo-imac on 2023/1/28.
 //
 
+#import <Foundation/Foundation.h>
 #import "MultiCameraSource.h"
 #import <AVFoundation/AVFoundation.h>
 #import "GPUImageView.h"
@@ -34,6 +35,7 @@ API_AVAILABLE(ios(13.0))
 
 @property(strong, nonatomic) GPUImageView* frontPreView;
 @property(strong, nonatomic) GPUImageView* backPreView;
+
 @end
 
 @implementation MultiCameraSource
@@ -42,10 +44,51 @@ API_AVAILABLE(ios(13.0))
     if(self = [super init]){        
         _sessionQueue = dispatch_queue_create("_sessionQueue", DISPATCH_QUEUE_SERIAL);
         
-        /// 开始异步处理setupSession
-        [self setupVideoSession];
+        dispatch_async(_sessionQueue, ^{
+            /// 开始异步处理setupSession
+            [self setupVideoSession];
+        });
+        
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(sessionStartError:)
+                                                     name:AVCaptureSessionRuntimeErrorNotification
+                                                   object:nil];
+    
     }
     return self;
+}
+
+- (void)dealloc{
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    
+    [_multiSession stopRunning];
+    
+    _backCameraDeviceInput  = nil;
+    _frontCameraDeviceInput = nil;
+    
+    [[_multiSession inputs] enumerateObjectsUsingBlock:^(__kindof AVCaptureInput * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        [_multiSession removeInput:obj];
+    }];
+    
+    [[_multiSession outputs] enumerateObjectsUsingBlock:^(__kindof AVCaptureOutput * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        [_multiSession removeOutput:obj];
+    }];
+    
+    if (@available(iOS 13.0, *)) {
+        [[_multiSession connections] enumerateObjectsUsingBlock:^(AVCaptureConnection * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            [_multiSession removeConnection:obj];
+        }];
+    } else {
+        /// ...
+    }
+    
+    self.delegate = nil;
+    _multiSession = nil;
+    _sessionQueue = nil;
+}
+
+-(void)sessionStartError:(NSNotification *)notification{
+    NSLog(@"[%s:%d] notification:%@", __FUNCTION__, __LINE__, notification);
 }
 
 - (void)setDelegate:(id<RenderDelegate>)delegate{
@@ -53,9 +96,13 @@ API_AVAILABLE(ios(13.0))
         _delegate = delegate;
         dispatch_async(_sessionQueue, ^{
             if(![self->_multiSession isRunning]){
-                [self->_multiSession startRunning];
+                          [self->_multiSession startRunning];
+                if([self->_multiSession isRunning]){
+                    Loggerinfo(@"_multiSession start Successed!");
+                }else{
+                    Loggerinfo(@"_multiSession start Failed!");
+                }
             }
-            NSLog(@"[%s:%d] isMulti=[%p]", __FUNCTION__, __LINE__,  self->_multiSession);
         });
     }
 }
@@ -75,6 +122,10 @@ API_AVAILABLE(ios(13.0))
             return;
         }else{
             [_multiSession beginConfiguration];
+//            if(![self configureBackCameraWithSessionAsConnection]){
+//                NSLog(@"configureBackCameraWithSessionAsConnection failed！");
+//                return;
+//            }
             if(![self configureBackCamera]){
                 NSLog(@"configureBackCamera failed！");
                 return;
@@ -84,11 +135,13 @@ API_AVAILABLE(ios(13.0))
                 NSLog(@"configureBackCamera failed！");
                 return;
             }
-            
+
             if(![self configureMicroPhone]){
                 NSLog(@"configureBackCamera failed！");
                 return;
             }
+            
+            
             [_multiSession commitConfiguration];
         }
     } else {
@@ -96,19 +149,30 @@ API_AVAILABLE(ios(13.0))
     }
 }
 
--(bool)configureBackCamera{
-    
+- (BOOL)configureBackCameraWithSessionAsConnection{
     if(@available(iOS 13.0, *)){
         [_multiSession beginConfiguration];
         
         /// 后置设备
         AVCaptureDevice* backCamera = [AVCaptureDevice defaultDeviceWithDeviceType:AVCaptureDeviceTypeBuiltInWideAngleCamera mediaType:AVMediaTypeVideo position:AVCaptureDevicePositionBack];
         
+        [backCamera lockForConfiguration:nil];
+        
+        for (AVCaptureDeviceFormat *format in backCamera.formats) {
+            if (format.isMultiCamSupported){
+                NSLog(@"activeFormat format=[%@]", format);
+                backCamera.activeFormat = format;
+                break;
+            }
+        }
+        [backCamera unlockForConfiguration];
+        
         /// 后置输出
         if(backCamera){
             _backCameraDeviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:backCamera error:nil];
+            
             if([_multiSession canAddInput:_backCameraDeviceInput]){
-                [_multiSession addInputWithNoConnections:_backCameraDeviceInput];
+                [_multiSession addInput:_backCameraDeviceInput];
                 Loggerinfo(@"_backCameraDeviceInput added!");
             }else{
                 Loggerinfo(@"[_backCameraDeviceInput add Failed!]");
@@ -120,26 +184,148 @@ API_AVAILABLE(ios(13.0))
         }
         
         /// Find the back camera device input's video port
-        id backCameraVideoPort = [[_backCameraDeviceInput portsWithMediaType:AVMediaTypeVideo sourceDeviceType:backCamera.deviceType sourceDevicePosition:backCamera.position] firstObject];
+        AVCaptureInputPort *backCameraVideoPort = [[_backCameraDeviceInput portsWithMediaType:AVMediaTypeVideo sourceDeviceType:backCamera.deviceType sourceDevicePosition:backCamera.position] firstObject];
         
         /// 添加视频输入
         if([_multiSession canAddOutput:_backCameraVideoDataOutput]){
-            [_multiSession addOutputWithNoConnections:_backCameraVideoDataOutput];
+            /// 视频帧输出格式
+            if([[_backCameraVideoDataOutput availableVideoCVPixelFormatTypes] containsObject:@(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)]){
+                [_backCameraVideoDataOutput setVideoSettings:[NSDictionary dictionaryWithObject:[NSNumber numberWithInt:kCVPixelFormatType_420YpCbCr8BiPlanarFullRange] forKey:(id)kCVPixelBufferPixelFormatTypeKey]];
+                [_multiSession addOutput:_backCameraVideoDataOutput];
+            }
+            
             Loggerinfo(@"_backCameraVideoDataOutput added!");
         }else{
             Loggerinfo(@"[_backCameraVideoDataOutput add Failed!]");
             goto failed;
         }
         
-        /// 视频帧输出格式
-        if([[_backCameraVideoDataOutput availableVideoCVPixelFormatTypes] containsObject:@(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)]){
-            [_backCameraVideoDataOutput setVideoSettings:[NSDictionary dictionaryWithObject:[NSNumber numberWithInt:kCVPixelFormatType_420YpCbCr8BiPlanarFullRange] forKey:(id)kCVPixelBufferPixelFormatTypeKey]];
+        [_backCameraVideoDataOutput setSampleBufferDelegate:self queue:_cameraProcessingQueue];
+        
+//        /// Connect the back camera device input to the back camera video data output
+//        AVCaptureConnection* backCameraVideoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:[NSArray arrayWithObjects:backCameraVideoPort, nil] output:_backCameraVideoDataOutput];
+//
+//        if([_multiSession canAddConnection:backCameraVideoDataOutputConnection]){
+//            [_multiSession addConnection:backCameraVideoDataOutputConnection];
+//            [backCameraVideoDataOutputConnection setVideoOrientation:AVCaptureVideoOrientationPortrait];
+//            Loggerinfo(@"backCameraVideoDataOutputConnection added!");
+//        }else{
+//            Loggerinfo(@"[backCameraVideoDataOutputConnection add Failed!]");
+//            goto failed;
+//        }
+        [_multiSession commitConfiguration];
+    //    /// Connect the back camera device input to the back camera video preview layer
+    //    id backCameraVideoPreviewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:backCameraVideoPort videoPreviewLayer:_backCameraVideoPreviewLayer];
+    //
+    //    if([_multiSession canAddConnection:backCameraVideoPreviewLayerConnection]){
+    //        [_multiSession addConnection:backCameraVideoPreviewLayerConnection];
+    //    }else{
+    //        NSLog(@"[backCameraVideoPreviewLayerConnection add Failed!]");
+    //        return false;
+    //    }
+    }else{
+        NSLog(@"[%s:%d] not available ios 13", __FUNCTION__, __LINE__);
+        return false;
+    }
+    return true;
+failed:
+    [_multiSession commitConfiguration];
+    return false;
+}
+
+/// 设置分辨率
+- (void)hardcodeForMultiCamera:(AVCaptureDevice *)device{
+    [device lockForConfiguration:nil];
+    
+    for (AVCaptureDeviceFormat *format in device.formats) {
+        if (@available(iOS 13.0, *)) {
+            if (format.isMultiCamSupported){
+                CMVideoDimensions dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription);
+                NSLog(@"activeFormat width=[%d] height=[%d]", dims.width, dims.height);
+                ///  默认 1280 * 720
+                if(dims.width == 1280 && dims.height == 720){
+                    NSLog(@"activeFormat format=[%@]", format);
+                    device.activeFormat = format;
+                    break;
+                }
             }
+        }
+    }
+    [device unlockForConfiguration];
+}
+
+/// 设置帧率
+/// - Parameter captureDeviceInput: captureDeviceInput
+-(void)frameRateForMultiCamera:(AVCaptureDeviceInput*)captureDeviceInput{
+    if(!captureDeviceInput) return;
+    CMTime activeMinFrameDuration = captureDeviceInput.device.activeVideoMinFrameDuration;
+    NSLog(@"activeMinFrameDuration value=[%lld] flags=[%u] epoch=[%lld] timescale=[%u]", activeMinFrameDuration.value, activeMinFrameDuration.flags, activeMinFrameDuration.epoch, activeMinFrameDuration.timescale);
+    double activeMaxFrameRate = (double)(activeMinFrameDuration.timescale) / (double)(activeMinFrameDuration.value);
+    activeMaxFrameRate -= 10.0;
+    
+    // Cap the device frame rate to this new max, never allowing it to go below 15 fps
+    if(activeMaxFrameRate >= 15){
+        [captureDeviceInput.device lockForConfiguration:nil];
+        if (@available(iOS 13.0, *)) {
+            /// 设置最小最大帧率都是这样设置
+            captureDeviceInput.videoMinFrameDurationOverride = CMTimeMake(1, (uint32_t)activeMaxFrameRate);
+            NSLog(@"reduced activeMaxFrameRate=[%f]", activeMaxFrameRate);
+        } else {
+            NSLog(@"[%s:%d] activeMaxFrameRates set Failed!", __FUNCTION__, __LINE__);
+        }
+        [captureDeviceInput.device unlockForConfiguration];
+    }
+}
+
+- (BOOL)configureBackCamera{
+    
+    if(@available(iOS 13.0, *)){
+        [_multiSession beginConfiguration];
+        
+        /// 后置设备
+        AVCaptureDevice* backCamera = [AVCaptureDevice defaultDeviceWithDeviceType:AVCaptureDeviceTypeBuiltInWideAngleCamera mediaType:AVMediaTypeVideo position:AVCaptureDevicePositionBack];
+        
+        /// 设置分辨率
+        [self hardcodeForMultiCamera:backCamera];
+        
+        /// 后置输出
+        if(backCamera){
+            _backCameraDeviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:backCamera error:nil];
+            if([_multiSession canAddInput:_backCameraDeviceInput]){
+                [_multiSession addInputWithNoConnections:_backCameraDeviceInput];
+                
+                [self frameRateForMultiCamera: _backCameraDeviceInput];
+                Loggerinfo(@"_backCameraDeviceInput added!");
+            }else{
+                Loggerinfo(@"[_backCameraDeviceInput add Failed!]");
+                goto failed;
+            }
+        }else{
+            Loggerinfo(@"[Back Camera Create Failed!]");
+            goto failed;
+        }
+        
+        /// Find the back camera device input's video port
+        AVCaptureInputPort *backCameraVideoPort = [[_backCameraDeviceInput portsWithMediaType:AVMediaTypeVideo sourceDeviceType:backCamera.deviceType sourceDevicePosition:backCamera.position] firstObject];
+        
+        /// 添加视频输入
+        if([_multiSession canAddOutput:_backCameraVideoDataOutput]){
+            /// 视频帧输出格式
+            if([[_backCameraVideoDataOutput availableVideoCVPixelFormatTypes] containsObject:@(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)]){
+                [_backCameraVideoDataOutput setVideoSettings:[NSDictionary dictionaryWithObject:[NSNumber numberWithInt:kCVPixelFormatType_420YpCbCr8BiPlanarFullRange] forKey:(id)kCVPixelBufferPixelFormatTypeKey]];
+                [_multiSession addOutputWithNoConnections:_backCameraVideoDataOutput];
+            }
+            
+            Loggerinfo(@"_backCameraVideoDataOutput added!");
+        }else{
+            Loggerinfo(@"[_backCameraVideoDataOutput add Failed!]");
+            goto failed;
+        }
         
         [_backCameraVideoDataOutput setSampleBufferDelegate:self queue:_cameraProcessingQueue];
         
         /// Connect the back camera device input to the back camera video data output
-        id backCameraVideoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:[NSArray arrayWithObjects:backCameraVideoPort, nil] output:_backCameraVideoDataOutput];
+        AVCaptureConnection* backCameraVideoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:[NSArray arrayWithObjects:backCameraVideoPort, nil] output:_backCameraVideoDataOutput];
         
         if([_multiSession canAddConnection:backCameraVideoDataOutputConnection]){
             [_multiSession addConnection:backCameraVideoDataOutputConnection];
@@ -176,6 +362,8 @@ failed:
         /// 前置设备
         AVCaptureDevice* frontCamera = [AVCaptureDevice defaultDeviceWithDeviceType:AVCaptureDeviceTypeBuiltInWideAngleCamera mediaType:AVMediaTypeVideo position:AVCaptureDevicePositionFront];
         
+        [self hardcodeForMultiCamera:frontCamera];
+        
         /// 前置输入
         if(frontCamera){
             _frontCameraDeviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:frontCamera error:nil];
@@ -196,19 +384,25 @@ failed:
         
         /// 添加输出
         if([_multiSession canAddOutput:_frontCameraVideoDataOutput]){
-            [_frontCameraVideoDataOutput setVideoSettings:[NSDictionary dictionaryWithObject:[NSNumber numberWithInt:kCVPixelFormatType_420YpCbCr8BiPlanarFullRange] forKey:(id)kCVPixelBufferPixelFormatTypeKey]];
-            [_multiSession addOutputWithNoConnections:_frontCameraVideoDataOutput];
-//            [_multiSession addOutput:_frontCameraVideoDataOutput];
-            Loggerinfo(@"_frontCameraVideoDataOutput added!");
+            if([[_frontCameraVideoDataOutput availableVideoCVPixelFormatTypes] containsObject:@(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)]){
+                [_frontCameraVideoDataOutput setVideoSettings:[NSDictionary dictionaryWithObject:[NSNumber numberWithInt:kCVPixelFormatType_420YpCbCr8BiPlanarFullRange] forKey:(id)kCVPixelBufferPixelFormatTypeKey]];
+                
+                [_multiSession addOutputWithNoConnections:_frontCameraVideoDataOutput];
+                //            [_multiSession addOutput:_frontCameraVideoDataOutput];
+                Loggerinfo(@"_frontCameraVideoDataOutput added!");
+                
+            }
         }else{
             Loggerinfo(@"[_frontCameraVideoDataOutput add Failed!]");
             goto failed;
         }
         
-        [_frontCameraVideoDataOutput setSampleBufferDelegate:self queue:_sessionQueue];
+        [_frontCameraVideoDataOutput setSampleBufferDelegate:self queue:_cameraProcessingQueue];
         
         /// Connect the back camera device input to the back camera video data output
         AVCaptureConnection* frontCameraVideoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:[NSArray arrayWithObjects:frontCameraVideoPort, nil] output:_frontCameraVideoDataOutput];
+        
+        /// @remark 前置设置了一个镜像反转
         frontCameraVideoDataOutputConnection.videoMirrored = true;
 
         if([_multiSession canAddConnection:frontCameraVideoDataOutputConnection]){
@@ -219,7 +413,7 @@ failed:
             Loggerinfo(@"[frontCameraVideoDataOutputConnection add Failed!]");
             goto failed;
         }
-        
+        [_multiSession commitConfiguration];
         //    /// Connect the back camera device input to the back camera video preview layer
         //    id frontCameraVideoPreviewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:frontCameraVideoPort videoPreviewLayer:_frontCameraVideoPreviewLayer];
         //
@@ -229,7 +423,6 @@ failed:
         //        NSLog(@"[frontCameraVideoPreviewLayerConnection add Failed!]");
         //        return false;
         //    }
-        [_multiSession commitConfiguration];
     }else{
         NSLog(@"[%s:%d] not available ios 13", __FUNCTION__, __LINE__);
         return false;
@@ -281,7 +474,7 @@ failed:
         /// Add the back microphone audio data output
         if([_multiSession canAddOutput:_backMicrophoneAudioDataOutput]){
             [_multiSession addOutputWithNoConnections:_backMicrophoneAudioDataOutput];
-            [_backMicrophoneAudioDataOutput setSampleBufferDelegate:self queue:_sessionQueue];
+            [_backMicrophoneAudioDataOutput setSampleBufferDelegate:self queue:_cameraProcessingQueue];
         }else{
             NSLog(@"add _backMicrophoneAudioDataOutput failed");
             
@@ -292,7 +485,7 @@ failed:
         /// Add the front microphone audio data output
         if([_multiSession canAddOutput:_frontMicrophoneAudioDataOutput]){
             [_multiSession addOutputWithNoConnections:_frontMicrophoneAudioDataOutput];
-            [_frontMicrophoneAudioDataOutput setSampleBufferDelegate:self queue:_sessionQueue] ;
+            [_frontMicrophoneAudioDataOutput setSampleBufferDelegate:self queue:_cameraProcessingQueue] ;
         }else{
             NSLog(@"add _frontMicrophoneAudioDataOutput failed");
             
