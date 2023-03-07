@@ -73,15 +73,41 @@ static const GLfloat IntegrationSquareVertices[] = {
 
 - (void)dealloc{
     NSLog(@"Camera Source is dealloc=[%p] [%p]", self, _session);
-    [self stopCaptureVideo];
+    
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-    self.delegate = nil;
+    
+    if(_sessionRunning){
+        [_session stopRunning];
+        _sessionRunning = NO;
+    }
+    
+    [_session.inputs enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        NSLog(@"Camera Source removeInput=[%p]", obj);
+        [_session removeInput:obj];
+    }];
+    
+    [_session.outputs enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        NSLog(@"Camera Source removeOutput=[%p]", obj);
+        [_session removeOutput:obj];
+    }];
+    
+    [[_videoOutput connections] enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        NSLog(@"Camera Source removeConnection=[%p]", obj);
+        [_session removeConnection:obj];
+    }];
+  
+    
+    _session      = nil;
+    _backCamera   = nil;
+    _frontCamera  = nil;
+    _videoInput   = nil;
+    _videoOutput  = nil;
     _sessionQueue = nil;
+    self.delegate = nil;
 }
 
 -(void)setupVideoSession{
     dispatch_async(_sessionQueue, ^{
-        self.sessionRunning = YES;
         ///  pixebuffer queue
         self->_cameraProcessingQueue = dispatch_queue_create("videoDataOutputQueue", DISPATCH_QUEUE_SERIAL);
         
@@ -95,7 +121,7 @@ static const GLfloat IntegrationSquareVertices[] = {
             
             for(AVCaptureDevice *device in discoverySession.devices){
                 if(position == AVCaptureDevicePositionFront){
-//                    self->_frontCamera = device;
+                    self->_frontCamera = device;
                 }else if(position == AVCaptureDevicePositionBack){
                     self->_backCamera = device;
                 }
@@ -138,7 +164,7 @@ static const GLfloat IntegrationSquareVertices[] = {
         
         [self.session commitConfiguration];
         
-        NSLog(@"Camera Source construct=[%@][%p][%p]", NSStringFromClass([self class]), self, _session);
+        NSLog(@"Camera Source construct=[%@][%p][%p]", NSStringFromClass([self class]), self, self->_session);
     });
 }
 
@@ -146,12 +172,12 @@ static const GLfloat IntegrationSquareVertices[] = {
 #pragma mark - AVCaptureVideoDataOutputSampleBufferDelegate
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection{
     
-    if(self.session.isRunning && _frameNumber < 3){
+    if(self.sessionRunning && _frameNumber < 3){
         NSLog(@"[%s:%d] drop frame %lu", __FUNCTION__, __LINE__, ++_frameNumber);
         return;
     }
     
-    if(self.session.isRunning && sampleBuffer && self.sessionRunning){
+    if(sampleBuffer && self.sessionRunning){
         if(_delegate && [_delegate respondsToSelector:@selector(willOutputSampleBuffer:)]){
             [_delegate willOutputSampleBuffer:sampleBuffer];
         }
@@ -165,7 +191,7 @@ static const GLfloat IntegrationSquareVertices[] = {
     
     NSError *error;
     AVCaptureDeviceInput *newInput = [[AVCaptureDeviceInput alloc] initWithDevice: [self currentDevice] error:&error];
-    if(newInput == nil || _session == nil){
+    if(newInput == nil || _session == nil || !_sessionRunning){
         NSLog(@"[%s:%d] position=[%d] set falied!", __FUNCTION__, __LINE__, (int)position);
         return;
     }else{
@@ -195,11 +221,10 @@ static const GLfloat IntegrationSquareVertices[] = {
 
 -(void)startCaptureVideo{
     /// 会阻塞当前线程，block添加到queue中后就会立即返回执行线程中后面的方法，
-    __weak typeof (self) weakSelf = self;
-    dispatch_barrier_async(_sessionQueue, ^{
-        __strong typeof (weakSelf) strongSelf = weakSelf;
-        if(![strongSelf.session isRunning]){
-            [strongSelf.session startRunning];
+    dispatch_sync(_sessionQueue, ^{
+        if(![_session isRunning]){
+            [_session startRunning];
+            self.sessionRunning = YES;
             NSLog(@"function = [%p] line = [%d] startCaptureVideo", __func__, __LINE__);
         }
     });
@@ -207,29 +232,10 @@ static const GLfloat IntegrationSquareVertices[] = {
 
 -(void)stopCaptureVideo{
     dispatch_sync(_sessionQueue, ^{
-        self.sessionRunning = NO;
         if ([_session isRunning]){
             [_session stopRunning];
-            [_session.inputs enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-                NSLog(@"Camera Source removeInput=[%p]", obj);
-                [_session removeInput:obj];
-            }];
-            
-            [_session.outputs enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-                NSLog(@"Camera Source removeOutput=[%p]", obj);
-                [_session removeOutput:obj];
-            }];
-            
-            [[_videoOutput connections] enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-                NSLog(@"Camera Source removeConnection=[%p]", obj);
-                [_session removeConnection:obj];
-            }];
-            
-            _session = nil;
-            _backCamera = nil;
-            _frontCamera = nil;
-            _videoInput = nil;
-            _videoOutput = nil;
+            self.sessionRunning = NO;
+            NSLog(@"function = [%p] line = [%d] stopCaptureVideo", __func__, __LINE__);
         }
     });
 #if 0
