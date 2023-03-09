@@ -17,6 +17,7 @@
 @implementation RenderImp
 
 @synthesize outputTextureOptions;
+@synthesize rgbOffscreenBuffer;
 @synthesize previewView;
 
 - (instancetype)init
@@ -41,4 +42,11 @@
     return self;
 }
 
+- (void)dealloc{
+    [previewView destory];
+    
+    rgbOffscreenBuffer = nil;
+    
+    NSLog(@"dealloc=[%@][%p] Render", NSStringFromClass([self class]), self);
+}
 @end

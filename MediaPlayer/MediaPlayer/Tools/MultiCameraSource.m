@@ -53,7 +53,6 @@ API_AVAILABLE(ios(13.0))
                                                  selector:@selector(sessionStartError:)
                                                      name:AVCaptureSessionRuntimeErrorNotification
                                                    object:nil];
-    
     }
     return self;
 }
@@ -85,6 +84,8 @@ API_AVAILABLE(ios(13.0))
     self.delegate = nil;
     _multiSession = nil;
     _sessionQueue = nil;
+    
+    NSLog(@"dealloc=[%@][%p]", NSStringFromClass([self class]), self);
 }
 
 -(void)sessionStartError:(NSNotification *)notification{
@@ -96,7 +97,7 @@ API_AVAILABLE(ios(13.0))
         _delegate = delegate;
         dispatch_async(_sessionQueue, ^{
             if(![self->_multiSession isRunning]){
-                          [self->_multiSession startRunning];
+                [self->_multiSession startRunning];
                 if([self->_multiSession isRunning]){
                     Loggerinfo(@"_multiSession start Successed!");
                 }else{
@@ -147,90 +148,6 @@ API_AVAILABLE(ios(13.0))
     } else {
         NSLog(@"[%s:%d] @available iOS 13.0", __FUNCTION__, __LINE__);
     }
-}
-
-- (BOOL)configureBackCameraWithSessionAsConnection{
-    if(@available(iOS 13.0, *)){
-        [_multiSession beginConfiguration];
-        
-        /// 后置设备
-        AVCaptureDevice* backCamera = [AVCaptureDevice defaultDeviceWithDeviceType:AVCaptureDeviceTypeBuiltInWideAngleCamera mediaType:AVMediaTypeVideo position:AVCaptureDevicePositionBack];
-        
-        [backCamera lockForConfiguration:nil];
-        
-        for (AVCaptureDeviceFormat *format in backCamera.formats) {
-            if (format.isMultiCamSupported){
-                NSLog(@"activeFormat format=[%@]", format);
-                backCamera.activeFormat = format;
-                break;
-            }
-        }
-        [backCamera unlockForConfiguration];
-        
-        /// 后置输出
-        if(backCamera){
-            _backCameraDeviceInput = [[AVCaptureDeviceInput alloc] initWithDevice:backCamera error:nil];
-            
-            if([_multiSession canAddInput:_backCameraDeviceInput]){
-                [_multiSession addInput:_backCameraDeviceInput];
-                Loggerinfo(@"_backCameraDeviceInput added!");
-            }else{
-                Loggerinfo(@"[_backCameraDeviceInput add Failed!]");
-                goto failed;
-            }
-        }else{
-            Loggerinfo(@"[Back Camera Create Failed!]");
-            goto failed;
-        }
-        
-        /// Find the back camera device input's video port
-        AVCaptureInputPort *backCameraVideoPort = [[_backCameraDeviceInput portsWithMediaType:AVMediaTypeVideo sourceDeviceType:backCamera.deviceType sourceDevicePosition:backCamera.position] firstObject];
-        
-        /// 添加视频输入
-        if([_multiSession canAddOutput:_backCameraVideoDataOutput]){
-            /// 视频帧输出格式
-            if([[_backCameraVideoDataOutput availableVideoCVPixelFormatTypes] containsObject:@(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)]){
-                [_backCameraVideoDataOutput setVideoSettings:[NSDictionary dictionaryWithObject:[NSNumber numberWithInt:kCVPixelFormatType_420YpCbCr8BiPlanarFullRange] forKey:(id)kCVPixelBufferPixelFormatTypeKey]];
-                [_multiSession addOutput:_backCameraVideoDataOutput];
-            }
-            
-            Loggerinfo(@"_backCameraVideoDataOutput added!");
-        }else{
-            Loggerinfo(@"[_backCameraVideoDataOutput add Failed!]");
-            goto failed;
-        }
-        
-        [_backCameraVideoDataOutput setSampleBufferDelegate:self queue:_cameraProcessingQueue];
-        
-//        /// Connect the back camera device input to the back camera video data output
-//        AVCaptureConnection* backCameraVideoDataOutputConnection = [[AVCaptureConnection alloc] initWithInputPorts:[NSArray arrayWithObjects:backCameraVideoPort, nil] output:_backCameraVideoDataOutput];
-//
-//        if([_multiSession canAddConnection:backCameraVideoDataOutputConnection]){
-//            [_multiSession addConnection:backCameraVideoDataOutputConnection];
-//            [backCameraVideoDataOutputConnection setVideoOrientation:AVCaptureVideoOrientationPortrait];
-//            Loggerinfo(@"backCameraVideoDataOutputConnection added!");
-//        }else{
-//            Loggerinfo(@"[backCameraVideoDataOutputConnection add Failed!]");
-//            goto failed;
-//        }
-        [_multiSession commitConfiguration];
-    //    /// Connect the back camera device input to the back camera video preview layer
-    //    id backCameraVideoPreviewLayerConnection = [[AVCaptureConnection alloc] initWithInputPort:backCameraVideoPort videoPreviewLayer:_backCameraVideoPreviewLayer];
-    //
-    //    if([_multiSession canAddConnection:backCameraVideoPreviewLayerConnection]){
-    //        [_multiSession addConnection:backCameraVideoPreviewLayerConnection];
-    //    }else{
-    //        NSLog(@"[backCameraVideoPreviewLayerConnection add Failed!]");
-    //        return false;
-    //    }
-    }else{
-        NSLog(@"[%s:%d] not available ios 13", __FUNCTION__, __LINE__);
-        return false;
-    }
-    return true;
-failed:
-    [_multiSession commitConfiguration];
-    return false;
 }
 
 /// 设置分辨率
@@ -294,6 +211,7 @@ failed:
             if([_multiSession canAddInput:_backCameraDeviceInput]){
                 [_multiSession addInputWithNoConnections:_backCameraDeviceInput];
                 
+                /// 设置码率
                 [self frameRateForMultiCamera: _backCameraDeviceInput];
                 Loggerinfo(@"_backCameraDeviceInput added!");
             }else{
@@ -370,6 +288,9 @@ failed:
             if([_multiSession canAddInput:_frontCameraDeviceInput]){
                 [_multiSession addInputWithNoConnections:_frontCameraDeviceInput];
                 Loggerinfo(@"_frontCameraDeviceInput added!");
+                
+                /// 设置码率
+                [self frameRateForMultiCamera: _frontCameraDeviceInput];
             }else{
                 Loggerinfo(@"[_frontCameraDeviceInput add Failed!]");
                 goto failed;

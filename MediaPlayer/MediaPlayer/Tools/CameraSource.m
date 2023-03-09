@@ -72,7 +72,8 @@ static const GLfloat IntegrationSquareVertices[] = {
 }
 
 - (void)dealloc{
-    NSLog(@"Camera Source is dealloc=[%p] [%p]", self, _session);
+    NSLog(@"dealloc=[%@][%p]",
+        NSStringFromClass([self class]), self);
     
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     
@@ -107,6 +108,7 @@ static const GLfloat IntegrationSquareVertices[] = {
 }
 
 -(void)setupVideoSession{
+    
     dispatch_async(_sessionQueue, ^{
         ///  pixebuffer queue
         self->_cameraProcessingQueue = dispatch_queue_create("videoDataOutputQueue", DISPATCH_QUEUE_SERIAL);

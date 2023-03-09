@@ -17,7 +17,6 @@
 
 -(instancetype)init{
     if(self == [super init]){
-        
         /// @remark 设置相机视频帧回吐
         self.render = [[MultiCameraRender alloc] init];
         self.multiSource = [[MultiCameraSource alloc] init];
@@ -29,6 +28,8 @@
 - (void)dealloc{
     self.render = nil;
     self.multiSource = nil;
+    
+    NSLog(@"dealloc=[%@][%p]", NSStringFromClass([self class]), self);
 }
 
 - (void)viewDidLoad {

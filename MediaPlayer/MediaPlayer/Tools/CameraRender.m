@@ -38,7 +38,6 @@ static const GLfloat MinIntegrationSquareVertices[] = {
 @property (nonatomic, assign) GLuint luminanceTexture;                        /// 亮度纹理
 @property (nonatomic, assign) GLuint chrominanceTexture;                      /// 颜色纹理
 @property (nonatomic, strong) GLProgram *offscreenYuv2RgbConversionProgram;   /// 着色器程序
-@property (nonatomic, strong) GPUImageFramebuffer *rgbOffscreenBuffer;        /// 离屏渲染FBO
 @property (nonatomic) dispatch_semaphore_t frameRenderingSemaphore;           /// 信号量
 
 /// @remark 提供子类接口

@@ -104,6 +104,22 @@ NSString *const KDYGPUImageMediaFilterForFragmentShaderString = SHADER_STRING
     return self;
 }
 
+-(void)dealloc{
+    _finishBack  = 0;
+    _finishFront = 0;
+    
+    _firstVertics = nil;
+    _secondVertics = nil;
+    _firstCoordinates = nil;
+    _secondCoordinates = nil;
+    
+    readQueue = nil;
+    _mixProgram  = nil;
+    _mixFrameBuffer = nil;
+    
+    NSLog(@"dealloc=[%@][%p] multiRender", NSStringFromClass([self class]), self);
+}
+
 /// @brief 编译着色器程序
 -(void)compileMixGLProgram{
     if(_mixProgram == nil){
@@ -165,7 +181,7 @@ NSString *const KDYGPUImageMediaFilterForFragmentShaderString = SHADER_STRING
                                             pixelHeight:pixelHeight];
         
         [self generateMixTextureId:textureId isFront:isFront currentTime:currentTime];
-        
+    
         CFRelease(sampleBuffer);
     });
 }
@@ -179,11 +195,12 @@ NSString *const KDYGPUImageMediaFilterForFragmentShaderString = SHADER_STRING
      *  5. 设置激活 GPUFrameBuffer
      */
     [self compileMixGLProgram];
-    [self setupMixFrameBuffer];
     [GPUImageContext setActiveShaderProgram:self.mixProgram];
+    
+    [self setupMixFrameBuffer];
     [self.mixFrameBuffer activateFramebuffer];
     
-    if(isFront){
+    if(isFront && textureId != 0){
         if(_finishBack == 1 && _finishFront == 0){
             glActiveTexture(GL_TEXTURE2);
             glBindTexture(GL_TEXTURE_2D, textureId);
@@ -191,56 +208,42 @@ NSString *const KDYGPUImageMediaFilterForFragmentShaderString = SHADER_STRING
             glVertexAttribPointer(_positionAttribute, 2, GL_FLOAT, 0, 0, _secondVertics);
             glVertexAttribPointer(_textureCoordinateAttribute, 2, GL_FLOAT, 0, 0, _secondCoordinates);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            
-            CVPixelBufferRef mixPixelBuffer = [_mixFrameBuffer pixelBuffer];
-            if(mixPixelBuffer){
-                Loggerinfo(@"mixPixBuffer success!");
-            }
-            
+
             INTEGRATION_CHECK_GL_ERROR
             _finishFront= 1;
         }
     }else{
-        if(_finishBack == 0 && _finishFront == 0){
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, textureId);
-            glUniform1i(_filterInputTextureUniform, 2);
-            glVertexAttribPointer(_positionAttribute, 2, GL_FLOAT, 0, 0, _firstVertics);
-            glVertexAttribPointer(_textureCoordinateAttribute, 2, GL_FLOAT, 0, 0, _firstCoordinates);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            
-            CVPixelBufferRef mixPixelBuffer = [_mixFrameBuffer pixelBuffer];
-            if(mixPixelBuffer){
-                Loggerinfo(@"mixPixBuffer success!");
-            }
-            
-            INTEGRATION_CHECK_GL_ERROR
-            _finishBack = 1;
-        }
+        /// 后置摄像头
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, textureId);
+        glUniform1i(_filterInputTextureUniform, 2);
+        glVertexAttribPointer(_positionAttribute, 2, GL_FLOAT, 0, 0, _firstVertics);
+        glVertexAttribPointer(_textureCoordinateAttribute, 2, GL_FLOAT, 0, 0, _firstCoordinates);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        
+        INTEGRATION_CHECK_GL_ERROR
+        _finishBack  = 1;
+        _finishFront = 0;
     }
-    NSLog(@"Finish Back:[%d] Finish Front:[%d]", _finishBack, _finishFront);
+
     if(_finishBack && _finishFront){
         _finishBack  = 0;
         _finishFront = 0;
         
-       
         [self renderWithoutEffects:currentTime];
-        Loggerinfo(@"mixFrameBuffer render!");
-        CVPixelBufferRef mixPixelBuffer = [_mixFrameBuffer pixelBuffer];
-        [_mixFrameBuffer unlock];
-        if(mixPixelBuffer){
-            Loggerinfo(@"mixPixBuffer success!");
-        }
     }
 }
 
 -(void)setupMixFrameBuffer{
     if(self.mixFrameBuffer == nil){
-        self->_mixFrameBuffer = [[GPUImageContext sharedFramebufferCache] fetchFramebufferForSize:CGSizeMake(self.imageBufferWidth, self.imageBufferHeight)  textureOptions:self.outputTextureOptions onlyTexture:NO];
+        self->_mixFrameBuffer = [[GPUImageContext sharedFramebufferCache]
+                                 fetchFramebufferForSize:CGSizeMake(self.imageBufferWidth, self.imageBufferHeight)
+                                 textureOptions:self.outputTextureOptions
+                                 onlyTexture:NO];
         [self->_mixFrameBuffer lock];
-        Loggerinfo(@"setupMixFrameBuffer init success");
+        Loggerinfo(@"setup MixFrameBuffer init success");
     }
 }
 
@@ -250,6 +253,7 @@ NSString *const KDYGPUImageMediaFilterForFragmentShaderString = SHADER_STRING
     [currentTarget setInputRotation:kGPUImageNoRotation atIndex:0];
     [currentTarget setInputSize:CGSizeMake(self.imageBufferWidth, self.imageBufferHeight) atIndex:0];
     [currentTarget setInputFramebuffer:self.mixFrameBuffer atIndex:0];
+//    [currentTarget setInputFramebuffer:self.rgbOffscreenBuffer atIndex:0];
     [currentTarget newFrameReadyAtTime:currentTime atIndex:0];
 }
 

@@ -32,6 +32,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, assign) GPUTextureOptions outputTextureOptions;          /// 创建纹理参数
 
+@property (nonatomic, strong) GPUImageFramebuffer *rgbOffscreenBuffer;         /// 离屏渲染FBO
+
 @end
 
 /*------------------------------------RenderImp------------------------------------------*/
